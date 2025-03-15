@@ -1733,6 +1733,8 @@ def main(characterID):
     if mainUnit.transform != '':
         input("Click any button to continue with transformed form:")
         main(int(mainUnit.transform))
+    else:
+        input("Click any button to finish the program:")
     
 os.system('cls') # Clears terminal; replace with os.system('clear') if on Unix/Linux/Mac
 print("Welcome to Manila's Dokkan Calculator (Powered by Dokkan.FYI by CapnMZ)")
