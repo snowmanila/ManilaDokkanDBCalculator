@@ -34,3 +34,5 @@ This should cover everything used in the stat calculation process.
 This calculator is currently a WIP, with different cases and passives still being tested with each unit. So consider this an open-beta test for the Calculator! This calculator has already been tested for a bulk number of units, including the pre-3rd Year Units, Super Strike TURs, etc, as well as all links and calculating link buffs from partners. Additionally, this calculator checks for transformations and (S)EZAs upon calculation, which can be selected in the terminal to test between the various steps, performing the appropriate adjustments if needed with changes in stats and passives. If there are any issues with the calculator, or any questions or suggestions, feel free to reach out!
 
 Anyways, I hope everyone enjoys this (early-access) version of the Dokkan Web Calculator!
+
+- Manila ❤
