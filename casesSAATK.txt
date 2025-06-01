@@ -1,0 +1,86 @@
+Huge Damage
+- Greatly raises ATK (67%) and causes huge damage to enemy (1001400) ✓
+- Causes huge damage to enemy and raises ATK for 3 turns (1010640) ✓
+- Causes huge damage, allies' ATK +x% for 1 turn (1003480) ✓
+
+Mass Damage
+- Causes mass damage to all enemies and raises ATK & DEF (1008810) ✓
+
+Extreme Damage
+- Raises ATK for 1 turn and causes extreme damage to enemy (1013220) ✓
+- Greatly raises ATK for 1 turn and causes extreme damage to enemy (1012940) ✓
+- Raises ATK and causes extreme damage to enemy (1011790) ✓
+- Raises ATK & DEF and causes extreme damage to enemy (1017250) ✓
+- Causes extreme damage to enemy and raises ATK for x turns (1011970) ✓
+- Causes extreme damage to enemy and raises allies' ATK by x% for 1 turn (1007900) ✓
+
+Supreme Damage
+- Raises ATK, raises DEF for 1 turn and causes supreme damage to enemy (1027740) ✓
+- Raises ATK, raises DEF for 1 turn and causes supreme damage to enemy with a y chance of stunning the enemy (1029880) ✓
+- Raises ATK for 1 turn and causes supreme damage to enemy (1030230) ✓
+- Raises ATK for 1 turn and causes supreme damage to enemy; Extreme Class allies' DEF +x% for 1 turn (self excluded) (1029920) ✓
+- Raises ATK for 1 turn, causes supreme damage to enemy and lowers ATK (1021320) ✓
+- Raises ATK for 1 turn, causes supreme damage to enemy and lowers DEF (1022070) ✓
+- Raises ATK for 1 turn, causes supreme damage to enemy and lowers ATK & DEF (1022710) ✓
+- Raises ATK for 1 turn and causes supreme damage with a y chance of stunning the enemy (1024790) ✓
+- Raises ATK & DEF for 1 turn and causes supreme damage to enemy (1014280) ✓
+- Raises ATK & DEF for 1 turn, causes supreme damage to enemy and lowers ATK (1024640) ✓
+- Raises ATK & DEF for 1 turn, causes supreme damage to enemy and lowers DEF (1030950) ✓
+- Raises ATK & DEF for 1 turn, causes supreme damage to enemy and lowers ATK & DEF (1022100) ✓
+- Raises ATK & DEF for 1 turn, causes supreme damage to enemy and seals Super Attack (1023200) ✓
+- Raises ATK & DEF for 1 turn and causes supreme damage with a y chance of stunning the enemy (1023070) ✓
+- Raises ATK & DEF for 1 turn and causes supreme damage to enemy; raises allies' ATK by x% for 1 turn (1029030) ✓
+- Raises ATK and causes supreme damage to enemy (1013190, 1025810) ✓
+- Raises ATK and causes supreme damage with a y chance of stunning the enemy (1010690) ✓
+- Raises ATK for x turns and causes supreme damage to enemy (1016060) ✓
+- Raises ATK & DEF by x% and causes supreme damage to enemy (1020860) ✓
+- Raises ATK & DEF and causes supreme damage to enemy (1011660) ✓
+- Raises ATK & DEF, causes supreme damage to enemy and recovers 3% HP (1030820)
+- Greatly raises ATK for 1 turn and causes supreme damage to enemy (1013180) ✓
+- Greatly raises ATK for 1 turn and causes supreme damage with a y chance of stunning the enemy (1013180) ✓
+- Greatly raises ATK for 1 turn and causes supreme damage to enemy while sacrificing y% HP (1018090) ✓
+- Greatly raises ATK for 1 turn and causes supreme damage to all enemies (1015990) ✓
+- Greatly raises ATK and causes supreme damage to enemy (1006680) ✓
+- Greatly raises ATK & DEF for 1 turn and causes supreme damage to enemy (1018230) ✓
+- Greatly raises ATK & DEF for 1 turn, causes supreme damage to enemy and lowers ATK (1019970) ✓
+- Greatly raises ATK & DEF for 1 turn, causes supreme damage to enemy and recovers 5% HP (1026620) ✓
+- High chance of greatly raising ATK for 1 turn; causes supreme damage to enemy (1021550) ✓
+- Massively raises ATK for 1 turn and causes supreme damage to enemy (1015760) ✓
+- Causes supreme damage and raises ATK for x turns (1002020, 1011950) ✓
+- Causes supreme damage and raises ATK & DEF by x% for y turns (1011280) ✓
+- Causes supreme damage to enemy and raises ATK for x turns (1016710) ✓
+- Causes supreme damage to enemy and ATK & DEF +x% for y turns (1010110) ✓
+- Causes supreme damage to enemy and raises allies' ATK by x% for 1 turn (1007880) ✓
+- Causes supreme damage to enemy and raises allies' ATK & DEF by x% for 1 turn (1031030) ✓
+- Causes supreme damage and raises allies' ATK by x% for 1 turn (1011650) ✓
+- Causes supreme damage to enemy and all allies' ATK +20% for 1 turn (1011270) ✓
+- Supreme damage and allies' ATK +20% for 1 turn (1002390) ✓
+- Causes supreme damage; ATK +20% for allies for 1 turn (1009990) ✓
+- Causes supreme damage to enemy; raises Super Class allies' ATK by x% for 1 turn (1011590) ✓
+- Causes supreme damage to enemy; raises allies' ATK by 18% and chance of performing a critical hit by 8% for 1 turn (1025020) ✓
+- Greatly raises DEF for 1 turn, causes supreme damage to enemy and raises allies' ATK by x% for 1 turn (self excluded) (1024100) ✓
+- Raises DEF, raises ATK for 1 turn and causes supreme damage to enemy (1030090) ✓
+
+Immense Damage
+- Causes immense damage to enemy and raises ATK for 1 turn (1011050) ✓
+- Raises ATK and causes immense damage to enemy (1012370) ✓
+- Raises ATK, causes immense damage to enemy and lowers ATK (1028560) ✓
+- Raises ATK, causes immense damage to enemy and lowers DEF (1019330) ✓
+- Raises ATK and causes immense damage to enemy with a high chance of sacrificing 7% HP (1023050) ✓
+- Raises ATK and causes immense damage with a y chance of stunning the enemy (1024280) ✓
+- Raises ATK, raises DEF for 1 turn and causes immense damage to enemy (1021800) ✓
+- Raises ATK for 1 turn and causes immense damage to enemy (1018750) ✓
+- Raises ATK for 1 turn and causes immense damage with a y chance of stunning the enemy (1023450) ✓
+- Raises ATK & DEF for 1 turn and causes immense damage to enemy (1011290) ✓
+- Raises ATK & DEF for 1 turn and causes immense damage to enemy while sacrificing x% HP (1031170) ✓
+- Raises ATK & DEF by x% for 1 turn and causes immense damage to enemy (1031050) ✓
+- Raises ATK & DEF and causes immense damage to enemy (1012730) ✓
+- Raises ATK & DEF and causes immense damage with a y chance of stunning the enemy (1031110) ✓
+- Greatly raises ATK for 1 turn and causes immense damage to enemy (1015960) ✓
+- Greatly raises ATK & DEF for 1 turn and causes immense damage to enemy (1030650) ✓
+- Massively raises ATK for 1 turn and causes immense damage to enemy (1007930) ✓
+- Causes immense damage to enemy and raises ATK & DEF (1008810) ✓
+- Causes immense damage to enemy; raises allies' ATK by y% for 1 turn (1012580) ✓
+- Causes immense damage and allies' ATK +y% for 1 turn (1008410) ✓
+- Causes immense damage to enemy; raises y Class allies' ATK by y% for 1 turn (1017270) ✓
+- Causes immense damage to enemy; raises y Class allies' ATK +y% for 1 turn (1012750) ✓

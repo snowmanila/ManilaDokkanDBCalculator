@@ -1,0 +1,32 @@
+Huge Damage
+- Raises DEF and causes huge damage to enemy (1020760)
+
+Extreme Damage
+- Raises DEF and causes extreme damage to enemy (1013040)
+
+Supreme Damage
+- Raises DEF for 1 turn and causes supreme damage to enemy (1030250)
+- Raises DEF for 1 turn, causes supreme damage to enemy and lowers ATK (1020060)
+- Raises DEF for 1 turn. causes supreme damage to enemy and lowers DEF (1025850)
+- Raises DEF for 1 turn and causes supreme damage with a y chance of stunning the enemy (1021710)
+- Raises DEF for 1 turn, causes supreme damage to enemy and seals Super Attack (1020880)
+- Raises DEF for x turns and causes supreme damage to enemy (1027170)
+- Greatly raises DEF for 1 turn and causes supreme damage to enemy (1016430)
+- Greatly raises DEF for 1 turn and causes supreme damage with a y chance of stunning the enemy (1021750)
+- Massively raises DEF for 1 turn and causes supreme damage to enemy (1015740)
+- Raises DEF and causes supreme damage to enemy (1006080)
+- Raises DEF and causes supreme damage with a y chance of stunning the enemy (1017810)
+- Raises DEF, causes supreme damage to enemy and lowers DEF (1010680)
+- Greatly raises DEF and causes supreme damage to enemy (1015520)
+- Causes supreme damage to enemy and raises DEF by x% for 1 turn (1016350)
+- Causes supreme damage to enemy; DEF +30% for 1 turn (1011750)
+- Causes supreme damage to enemy and DEF +30% for 3 turns (1010130)
+- Causes supreme damage to enemy and raises DEF for x turns (1016720)
+- Causes supreme damage to enemy and raises DEF by 30% for 3 turns (1012670)
+
+Immense Damage
+- Raises DEF for 1 turn and causes immense damage to enemy (1013850)
+- Raises DEF and causes immense damage to enemy (1016500)
+- Greatly raises DEF for 1 turn and causes immense damage to enemy (1018110)
+- Causes immense damage; DEF +30% for 6 turns
+- Causes immense damage to enemy; DEF -30% for 1 turn (1011760)

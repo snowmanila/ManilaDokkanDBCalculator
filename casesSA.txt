@@ -1,0 +1,45 @@
+Low Damage
+- Low damage with a rare chance to stun the enemy (1005600)
+- Low damage with a great chance to stun the enemy (1002310)
+
+Damage
+- Causes damage to enemy and seals Super Attack (1002160) ✓
+- Causes damage with a chance of stunning the enemy (2000070)
+- Causes damage and may stun the enemy (1002030)
+
+Huge Damage
+- Causes huge damage to enemy (1001910) ✓
+- Causes huge damage to enemy and lowers ATK (1006340) ✓
+- Causes huge damage to enemy and lowers DEF (1001890)
+- Causes huge damage to enemy and greatly lowers DEF (1000960)
+- Causes huge damage and lowers ATK (1005920)
+- Causes huge damage and greatly lowers ATK (1002940)
+- Causes huge damage and lowers DEF (1004570)
+- Causes huge damage and greatly lowers DEF (1006250)
+- Causes huge damage with a rare chance of stunning the enemy (1000270)
+- Causes huge damage and may stun the enemy (1001670)
+- Causes huge damage and seals Super Attack (1003450)
+- Huge damage to enemy and greatly lowers DEF (2000200)
+- Huge damage with a high chance to stun the enemy (1003880)
+
+Extreme Damage
+- Causes extreme damage to enemy (1001900) ✓
+- Causes extreme damage to enemy and lowers ATK (1012970)
+- Causes extreme damage to enemy and lowers DEF (1002660)
+- Causes extreme damage with a rare chance to stun the enemy (1012560)
+- Causes extreme damage with a chance to stun the enemy (1011220)
+- *Causes extreme damage with a medium chance to stun the enemy (1012470) ✓
+- Causes extreme damage with a high chance to stun the enemy (1008500)
+- Causes extreme damage to enemy and seals Super Attack (1013360)
+
+Supreme Damage
+- Causes supreme damage to enemy and lowers ATK & DEF
+
+Immense Damage
+- Causes immense damage to enemy (1003320)
+
+Special
+- SA Lv y: Super Attack power +x% (1003700)
+- x% chance of Super Attack transforming for greater power! (1003560)
+- Launches Super Attack when Ki is x or more! (1010640) ✓
+- x% chance of Super Attack transforming for more power! Launches Super Attack when Ki is y or more if Super Attack level reaches z! (1014100) ✓

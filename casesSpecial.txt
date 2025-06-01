@@ -1,0 +1,15 @@
+Basic effect(s)
+- Launches an additional attack that has a y chance of becoming a Super Attack (1009320) ✓
+- x chance of launching an additional attack that has a y chance of becoming a Super Attack (1009320) ✓
+- Launches y additional attacks, each of which has a x chance of becoming a Super Attack (1022970) ✓
+- x chance of turning into Giant Ape (1005140)
+
+When attacking with y or more Ki
+- Launches an additional Super Attack (1007450)
+
+When receiving a normal attack
+- Counters with enormous power (1012630)
+- Damage reduction rate +x% temporarily and counters with enormous power (1008410)
+
+When receiving a Super Attack
+- x chance of nullifying it and countering with enormous power (1009420) ✓

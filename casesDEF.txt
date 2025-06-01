@@ -1,0 +1,171 @@
+Basic effect(s)
+- DEF +x (1005940)
+- DEF +x% (1001670) ✓
+- Ki +z and DEF +x% (1017530) ✓
+- All allies' DEF +x (1001340)
+- All allies' DEF +x% (1001630)
+- All allies' Ki +z and DEF +x% (1030250)
+- All allies' Ki +z1 and DEF +x1% and if there is another y Category ally attacking in the same turn, plus an additional Ki +z2 and chance of performing a critical hit +x2% (1030260)
+- y Type allies' Ki +z and DEF +x% (1006270)
+- y Class allies' DEF +x% (1011810)
+- y Class allies' Ki +z and DEF +x% (1013360)
+- y Category allies' DEF +x% (1015850)
+- y Category z Class allies' DEF +x% (1020960)
+- y Category allies' Ki +z and DEF +x% (1012060)
+- y chance of DEF +x% (1004670)
+- y chance of all allies' DEF +x% (1020540)
+
+When HP is y% or more
+- DEF +x (1000970)
+- DEF +x% (1030820)
+
+When HP is y% or less
+- DEF +x% (1012410)
+- All allies' DEF +x% (1000110)
+
+As the z attacker in a turn
+- DEF +x% (1011270)
+
+When facing only 1 enemy
+- DEF +x (1000290)
+- DEF +x% (1017520)
+
+When facing y or more enemies
+- DEF +x% (1014000)
+- DEF -x% (1009810)
+
+For every Ki Sphere obtained
+- DEF +x% (1013900)
+
+y Ki Spheres obtained
+- DEF +x% (1023180)
+- DEF +x% when attacking (1025830)
+
+When the character is the y to obtain Ki Spheres in a turn
+- DEF +x% (1024100) ✓
+- All allies' Ki +z and DEF +x% (1024100) ✓
+
+For y turn(s) from the character's entry turn
+- DEF +x (1007920)
+- DEF +x% (1010130)
+- Ki +z and DEF +x% (1016210)
+
+On the y turns from the character's entry turn
+- DEF +x% per y Ki Sphere obtained (1028750) ✓
+
+Per y Category ally on the team
+- DEF +x% (1028560)
+- DEF +x% (up to z%) (1014730)
+
+When there is a y Category ally on the team
+-DEF +x% (1025240)
+
+When there is another y Category ally on the team
+-DEF +x% (1030000)
+
+When z or more y Category allies are on the team
+- DEF +x% (1027740) ✓
+
+When there is another y Category ally attacking in the same turn
+- DEF +x% (1029900)
+- DEF +x% when receiving an attack (1029900)
+- DEF +x% as the y attacker in a turn (1028780)
+
+When there is an ally whose name includes y on the team
+- DEF +x% (1018140)
+
+When there is an ally whose name includes y attacking in the same turn
+- DEF +x% at the start of each turn (1012310) ✓
+
+When all allies attacking in the same turn are y characters
+- DEF +x% (1025320)
+
+When there is a y Category enemy
+- DEF +x% (1026860)
+- Ki +z and DEF +x% (1016090)
+
+The more HP remaining
+- DEF + (up to x%) (1017880)
+
+The less HP remaining
+- DEF + (up to x%) (1012140)
+
+At the start of each turn
+- DEF +x% (up to y%) (1015740)
+
+------------------------------------------------------------
+
+When attacking
+- DEF -x (2000640)
+- DEF +x% (1029320)
+
+When attacking with y or more Ki
+- DEF +x% (1016710)
+- DEF +x% when HP is z% or more (1031170) ✓
+- DEF -x% (1007830)
+- All allies' DEF +x% (1031030) ✓
+
+After receiving an attack
+- DEF +x% (1030000)
+- DEF -x% within the turn (1017270)
+- DEF +x% for y turn(s) (1015540)
+- DEF +x% when facing only 1 enemy (1006430)
+- Attacks are effective against all Types and DEF +x% within the turn (1024840)
+
+When receiving an attack
+- DEF +x% (1027200)
+- DEF +x% for every y Ki (1029340)
+
+When receiving an attack for the 1st time
+- The more HP remaining, the greater the DEF boost within the turn (up to +x%) (1028480)
+
+For every attack received
+- DEF +x% (up to y%) (1016140)
+- DEF & chance of evading enemy's attack +x% (up to y%) (1021550)
+
+For every attack received or evaded
+- DEF +x% (up to y%) (1030720)
+
+After receiving y attacks in battle
+- DEF +x% (1026140)
+
+For every attack performed
+- DEF +x% (up to y%) (1013820)
+
+For every Super Attack performed
+- DEF +x% (up to y%) (1021090)
+
+Every time the character performs y Super Attacks in battle
+- DEF +x% within the turn (up to once within a turn) (1027360)
+
+After performing y Super Attack(s) in battle
+- DEF +x% (1024490)
+
+For every attack evaded
+- DEF +x% (up to y%) (1022870)
+- DEF +x% within the turn (1019350)
+
+After receiving or evading an attack
+- DEF +x% for y turn(s) (1026880)
+
+After guard is activated
+- DEF +x% (1023740)
+
+Whenever guard is activated
+- DEF +x% (up to y%) (1026520)
+
+When the target enemy is in the following status: x
+- DEF +x% (1014950)
+
+------------------------------------------------------------
+
+Special (Should not be considered)
+- y Class enemies' DEF -x% (1013360)
+- Attacked enemy's DEF -x% for 3 turn(s) (1012560)
+- Chance of all enemies' DEF -x% (1000330)
+- y chance of all enemies' DEF -x% (1002150)
+- Chance of all enemies' DEF -x% (When attacking) (1001110)
+- y chance of lowering the enemy's DEF to 0 (When attacking) (1000240)
+- Enemies' DEF -x% (When attacking) (1001310)
+- Enemies' DEF -x% (When attacking with y or more Ki) (1001200)
+- All enemies' DEF -x% for 3 turn(s) (After receiving an attack) (1001070)
