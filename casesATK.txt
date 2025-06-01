@@ -1,48 +1,36 @@
 None (1000650) ✓
 
 Basic effect(s)
-- ATK +x (1000050) ✓
-- ATK +x (once only) (1010040) ✓
-- ATK & DEF +x (1002470) ✓
-- ATK +x and DEF +y (1009360) ✓
-- Ki +y and ATK +x (1000280) ✓
-- Ki +y and ATK & DEF +x (1004510) ✓
 - ATK +x% (1001130) ✓
 - ATK & DEF +x% (1002590) ✓
 - Ki +z and ATK +x% (1017540) ✓
 - Ki +z and ATK & DEF +x% (1015630) ✓
 - Ki +z, ATK +x% and DEF +y% (1015990) ✓
-- All allies' ATK +x (1002000) ✓
-- All allies' ATK & DEF +x (1008480) ✓
 - All allies' ATK +x% (1002390) ✓
 - All allies' ATK & DEF +x% (1001460) ✓
-- All allies' Ki +z and ATK +x (1009610) ✓
 - All allies' Ki +z and ATK +x% (1030230) ✓
 - All allies' Ki +z1 and ATK +x1% and if there is another y Category ally attacking in the same turn, plus an additional Ki +z2 and chance of performing a critical hit +x2% (1030240) ✓
 - All allies' Ki +z and ATK +x% (self excluded) (1029340) ✓
 - All allies' Ki +z and ATK & DEF +x% (1016430) ✓
 - All allies' Ki +z1 and ATK & DEF +x1%, plus an additional Ki +z2 and ATK & DEF +x2% for characters who also belong to the y Category (1029900)
 - All allies' Ki +z, ATK & DEF +x% and chance of performing a critical hit +y% (1015510) ✓
-- y Type allies' ATK +x (1000590) ✓
-- y Type allies' ATK & DEF +x (1000940) ✓
-- y Type allies' Ki +z and ATK & DEF +x (1010120) ✓
 - y Type allies' ATK +x% (2000270) ✓
 - y Type allies' ATK & DEF +x% (1005190) ✓
 - y Type allies' Ki +z and ATK +x% (1011730) ✓
 - y Type allies' Ki +z and ATK & DEF +x% (1010190) ✓
 - y Class allies' ATK +x% (1012940) ✓
 - y Class allies' ATK & DEF +x% (1011590)
-- y Class allies' DEF +x1%, plus an additional Ki +z and ATK & DEF +x2% for characters who also belong to the
-y2 Category (1029740) ✓
 - y Class allies' ATK & DEF +x1%, plus an additional ATK & DEF +x2% for characters who also belong to the y2 Category (1031090) ✓
 - y Class allies' ATK & DEF +x1%, plus an additional Ki +z and ATK & DEF +x2% for characters who also belong to the y2 Category (1029760) ✓
+- y Class allies' DEF +x1%, plus an additional Ki +z and ATK & DEF +x2% for characters who also belong to the
+y2 Category (1029740) ✓
 - y Class allies' Ki +z and ATK +x% (1009190) ✓
 - y Class allies' Ki +z and ATK & DEF +x% (1012470) ✓
 - Class y Type allies' ATK & DEF +x% (1010170) ✓
 - y Category allies' ATK +x% (1018010) ✓
 - y Category allies' ATK & DEF +x% (1012850) ✓
-- y Category allies' ATK & DEF +x% (self excluded) (1029130) ✓
 - y Category allies' ATK & DEF +x% and chance of performing a critical hit +z% (1015190) ✓
+- y Category allies' ATK & DEF +x% (self excluded) (1029130) ✓
 - y Category allies' ATK +x% and DEF +z% (1014260) ✓
 - y Category allies' Ki +z and ATK +x% (1017290) ✓
 - y Category allies' Ki +z and ATK & DEF +x% (1013650) ✓
@@ -52,10 +40,9 @@ y2 Category (1029740) ✓
 - y1 Category allies' Ki +z1 and DEF +x1%, plus an additional Ki +z2 and ATK & DEF +x2% for characters who
 also belong to the y2 Category (1030300) ✓
 - y Category allies' Ki +z1 and ATK & DEF +x1%, plus an additional Ki +z2 when the character is the 2nd to obtain Ki Spheres in a turn, plus an additional ATK & DEF +x2% when the character is the 3rd to obtain Ki Spheres in a turn (1029610) ✓
-- y1 Category y2 Class allies' Ki +z and ATK & DEF +x% (1018570) ✓
 - y1 Category y2 Class allies' ATK +x% and DEF +z% (1020270) ✓
+- y1 Category y2 Class allies' Ki +z and ATK & DEF +x% (1018570) ✓
 - Chance of ATK +x% (1000180) ✓
-- y chance of Ki +z and ATK +x (1000880) ✓
 - y chance of ATK +x% (1000350) ✓
 - y chance of ATK -x% (1004100) ✓
 - y chance of ATK & DEF +x% (1000190) ✓
@@ -63,11 +50,21 @@ also belong to the y2 Category (1030300) ✓
 - y chance of all allies' ATK +x% (2000020) ✓
 - y chance of all allies' ATK & DEF +x% (1002160) ✓
 - y chance of z Type allies' Ki +z and ATK +x% (1009280) ✓
+- ATK +x (1000050) ✓
+- ATK +x (once only) (1010040) ✓
+- ATK & DEF +x (1002470) ✓
+- ATK +x and DEF +y (1009360) ✓
+- Ki +y and ATK +x (1000280) ✓
+- Ki +y and ATK & DEF +x (1004510) ✓
+- All allies' ATK +x (1002000) ✓
+- All allies' ATK & DEF +x (1008480) ✓
+- All allies' Ki +z and ATK +x (1009610) ✓
+- y Type allies' ATK +x (1000590) ✓
+- y Type allies' ATK & DEF +x (1000940) ✓
+- y Type allies' Ki +z and ATK & DEF +x (1010120) ✓
+- y chance of Ki +z and ATK +x (1000880) ✓
 
 When HP is y% or more
-- ATK +x (1003250) ✓
-- ATK & DEF +x (1002610) ✓
-- Ki +z and ATK +x (1000990) ✓
 - ATK +x% (1000230) ✓
 - ATK & DEF +x% (1005610) ✓
 - Ki +z and ATK +x% (1008590) ✓
@@ -75,21 +72,24 @@ When HP is y% or more
 - All allies' ATK +x% (2000130) ✓
 - All allies' ATK & DEF +x% (1003770) ✓
 - z Category allies' ATK & DEF +x% (self excluded) (1028460) ✓
+- ATK +x (1003250) ✓
+- ATK & DEF +x (1002610) ✓
+- Ki +z and ATK +x (1000990) ✓
 
 When HP is y% or less
 - ATK +x (1000270) ✓
 - Ki +z and ATK +x (1007900) ✓
-- Ki +z and ATK +x (once only) (1008680) ✓*
+- Ki +z and ATK +x (once only) (1008680) ✓
 - ATK +x% (1006340) ✓
-- ATK +x% (once only) (1010140) ✓*
+- ATK +x% (once only) (1010140) ✓
 - ATK & DEF +x% (1001450) ✓
 - Ki +z and ATK +x% (1008140) ✓
 - Ki +z and ATK & DEF +x% (1014400) ✓
 - All allies' ATK +x% (1002050) ✓
 - y Class allies' ATK +x% (1011770) ✓
-- y Class allies' ATK +x% (once only) (1012550) ✓*
+- y Class allies' ATK +x% (once only) (1012550) ✓
 - All enemies' and all allies' ATK +25% (1000160) ✓
-- Ki +z, ATK +x% and high chance of evading enemy's attack for w turn(s) (once only) (1012370) ✓*
+- Ki +z, ATK +x% and high chance of evading enemy's attack for w turn(s) (once only) (1012370) ✓
 
 As the z attacker in a turn
 - ATK +x (1006380, 1000550, 1000560) ✓
@@ -136,7 +136,7 @@ When facing y or less enemies
 - ATK +x and DEF +z (1010280) ✓
 - ATK +x% (1003040) ✓
 - ATK & DEF +x% (1011280) ✓
-- ATK & DEF +x% (once only) (1010510) ✓*
+- ATK & DEF +x% (once only) (1010510) ✓
 
 Per existing enemy
 - ATK & DEF +x (1019380) ✓
@@ -147,7 +147,7 @@ For every Ki Sphere obtained
 - ATK & DEF +x (1022320) ✓
 - ATK +x% (2000690) ✓
 - ATK & DEF +x% (1004810) ✓
-- ATK & DEF +x1% (up to x2%) (1029560) ✓*
+- ATK & DEF +x1% (up to x2%) (1029560) ✓
 - ATK +x% and DEF +x% (1010680) ✓
 - ATK +x% and DEF -x% (1011160) ✓
 - ATK +x% per y Category ally attacking in the same turn (self excluded) (1018470) ✓
@@ -423,7 +423,7 @@ After receiving y attack(s) in battle
 - ATK +x% and damage reduction rate +z% for y turn(s) after the end of the turn (1022070) ✓
 
 For every attack received
-- ATK and chance of performing a critical hit +x% within the turn (1028300) ✓*
+- ATK and chance of performing a critical hit +x% within the turn (1028300) ✓
 - ATK +x% (up to y%) (1005990) ✓
 - ATK -x% (no more than -y%) (1031010) ✓
 - ATK & DEF +x% (up to y%) (1030250) ✓
@@ -449,7 +449,7 @@ Every time the character performs y attacks in battle
 - ATK & DEF +x% and y chance of performing a critical hit at the start of the character's next attacking turn (up to once within a turn) (1024960) ✓
 
 For every Super Attack performed
-- ATK +x% (1029010) ✓*
+- ATK +x% (1029010) ✓
 - ATK +x% (up to y%) (1025440) ✓
 - ATK & DEF +x% (up to y%) (1018370) ✓
 - ATK, DEF & chance of performing a critical hit +x% (up to y%) (1031090) ✓

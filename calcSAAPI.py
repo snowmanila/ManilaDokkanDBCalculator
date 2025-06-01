@@ -26,11 +26,14 @@ class Unit:
     stats: list
     kiValues: list
     kiMultiplier: int
-    transform: int 
+    transform: int
+    activeName: str
+    active: str
+    activeCond: str
     
     def __init__(self, id, unitClass, type, rank, title, name, lead, SANames, 
     SAEffects, passiveName, passive, links, linkBuffs, categories, stats, 
-    kiValues, kiMultiplier, transform):
+    kiValues, kiMultiplier, transform, activeName, active, activeCond):
         self.id = id
         self.unitClass = unitClass
         self.type = type
@@ -49,66 +52,9 @@ class Unit:
         self.kiValues = kiValues
         self.kiMultiplier = kiMultiplier
         self.transform = transform
-        
-# Test Class for API
-@dataclass
-class APIUnit:
-    id: int
-    name: str
-    rarity: int # 0-5: N, R, SR, SSR, UR, LR
-    hp_max: int
-    atk_max: int
-    def_max: int
-    element: int # 0-4: No Class; 5-9: Extreme, 10-14: Super
-    eball_mod_min: int # Min Ki multiplier
-    eball_mod_mid: int # Mid Ki multiplier (for LRs)
-    eball_mod_max: int # Max Ki multiplier (200 for LRs, else for URs)
-    eball_mod_max_num: int
-    title: str
-    leader_skill: str
-    passive_skill_name: str
-    passive_skill_itemized_desc: str
-    active_skill_name: str
-    active_skill_effect: str
-    card_status: str # F2P, DFE, Carnival
-    categories: list
-    potential: list
-    specials: dict = field(default_factory= lambda: {
-        'name': None,
-        'description': None,
-        'eball_num_start': None,
-        'special_bonus_1': None
-    })
-    transformations: dict = field(default_factory= lambda: {
-        'id': None,
-        'name': None
-    })
-    card_links: dict = field(default_factory= lambda: {
-        'name': None,
-        'level10_description': None
-    })
-        
-    def __init__(self, id, name, rarity, hp_max, atk_max, def_max, element, eball_mod_min, SANames, 
-    SAEffects, passiveName, passive, links, linkBuffs, categories, stats, 
-    kiValues, kiMultiplier, transform):
-        self.id = id
-        self.name = name
-        self.type = type
-        self.rarity = rarity
-        self.hp_max = hp_max
-        self.atk_max = atk_max
-        self.def_max = def_max
-        self.element = element
-        self.eball_mod_min = eball_mod_min
-        self.passiveName = passiveName
-        self.passive = passive
-        self.links = links
-        self.linkBuffs = linkBuffs
-        self.categories = categories
-        self.stats = stats
-        self.kiValues = kiValues
-        self.kiMultiplier = kiMultiplier
-        self.transform = transform
+        self.activeName = activeName
+        self.active = active
+        self.activeCond = activeCond
         
 # Class for keeping track of a linking partner
 @dataclass
@@ -221,22 +167,22 @@ def retrieveSA(response, characterID, rank, EZA):
     kiValues = []
     i = 0
     while SAContent.__contains__("secondary_effects"):
-         SAContent = SAContent[SAContent.find(',&quot;name&quot;:&quot;')+24:]
+        SAContent = SAContent[SAContent.find(',&quot;name&quot;:&quot;')+24:]
         
-         SAName = SAContent[:SAContent.find('&quot;,&quot;description')]
-         if SAName.__contains__(',&quot;name&quot;:&quot;'):
+        SAName = SAContent[:SAContent.find('&quot;,&quot;description')]
+        if SAName.__contains__(',&quot;name&quot;:&quot;'):
             SAName = SAName[SAName.find(',&quot;name&quot;:&quot;')+24:]
-         SAName = SAName.replace("\\n", "")
-         SAName = SAName.replace("&amp;", "&")
-         SAName = SAName.replace("&#39;", "'")
-         SAName = SAName.replace("&quot;", "")
+        SAName = SAName.replace("\\n", "")
+        SAName = SAName.replace("&amp;", "&")
+        SAName = SAName.replace("&#39;", "'")
+        SAName = SAName.replace("&quot;", "")
         
-         SAContent = SAContent[SAContent.find('&quot;,&quot;description&quot;:&quot;')+37:]
-         SAEffect = SAContent[:SAContent.find('&quot;,&quot;effects')]
-         if SAEffect.__contains__(',&quot;description&quot;:&quot;'):
+        SAContent = SAContent[SAContent.find('&quot;,&quot;description&quot;:&quot;')+37:]
+        SAEffect = SAContent[:SAContent.find('&quot;,&quot;effects')]
+        if SAEffect.__contains__(',&quot;description&quot;:&quot;'):
             SAEffect = SAEffect[SAEffect.find(',&quot;description&quot;:&quot;')+31:]
         
-         if SAContent.__contains__("secondary_effects&quot;:[{"):
+        if SAContent.__contains__("secondary_effects&quot;:[{"):
             SAContent = SAContent[SAContent.find(',&quot;name&quot;:&quot;')+24:]
             effect = SAContent[:SAContent.find('&quot;,&quot;description&quot;:&quot;')]
             
@@ -244,41 +190,41 @@ def retrieveSA(response, characterID, rank, EZA):
                 effect = SAContent[SAContent.find('&quot;,&quot;description&quot;:&quot;')+37:SAContent.find('&quot;,&quot;lv&quot;:')]
             if not effect.__contains__(',&quot;name&quot;:&quot;'):
                 SAEffect += f" ({effect})"
-         SAEffect = SAEffect.replace("\\n", "")
-         SAEffect = SAEffect.replace("&amp;", "&")
-         SAEffect = SAEffect.replace("&#39;", "'")
-         SAEffect = SAEffect.replace("&quot;", "")
-         SAEffect = SAEffect.replace(" )", ")")
+        SAEffect = SAEffect.replace("\\n", "")
+        SAEffect = SAEffect.replace("&amp;", "&")
+        SAEffect = SAEffect.replace("&#39;", "'")
+        SAEffect = SAEffect.replace("&quot;", "")
+        SAEffect = SAEffect.replace(" )", ")")
         
-         if (characterID == 1001401 or characterID == 1003341 or
-         characterID == 2000231 or characterID == 1008531):
+        if (characterID == 1001401 or characterID == 1003341 or
+        characterID == 2000231 or characterID == 1008531):
             SAEffect = SAEffect.replace('Greatly raises ATK', 'Raises ATK by 67%')
-         elif SAEffect.__contains__('Raises ATK & DEF for '):
+        elif SAEffect.__contains__('Raises ATK & DEF for '):
             SAEffect = SAEffect.replace(f'Raises ATK & DEF ', 'Raises ATK & DEF by 30% ')
-         elif ((SAEffect.__contains__('Raises ATK & DEF ') or
+        elif ((SAEffect.__contains__('Raises ATK & DEF ') or
         SAEffect.__contains__('Raises ATK & DEF, ')) and
-         not SAEffect.__contains__('Raises ATK & DEF by ')):
+        not SAEffect.__contains__('Raises ATK & DEF by ')):
             if SAEffect.__contains__('extreme damage'):
                 # Dev Note: WHAT DO YOU MEAN EXTREME DAMAGE MULTIPLIERS HAVE 10% STACKING
                 # AS COMPARED TO EVERYTHING ELSE THAT HAS 20%???
                 SAEffect = SAEffect.replace(f'Raises ATK & DEF', 'Raises ATK & DEF by 10%')
             else:
                 SAEffect = SAEffect.replace(f'Raises ATK & DEF', 'Raises ATK & DEF by 20%')
-         elif ((SAEffect.__contains__('Raises ATK') or SAEffect.__contains__('Raises DEF')) and
-         not SAEffect.__contains__(' by ')):
+        elif ((SAEffect.__contains__('Raises ATK') or SAEffect.__contains__('Raises DEF')) and
+        not SAEffect.__contains__(' by ')):
             SAEffect = SAEffect.replace(f'aises DEF', 'aises DEF by 30%')
             SAEffect = SAEffect.replace(f'aises ATK', 'aises ATK by 30%')
-         elif (SAEffect.__contains__('Greatly raises ATK ') or SAEffect.__contains__('Greatly raises DEF ') or
-         SAEffect.__contains__('greatly raising ATK ')):
+        elif (SAEffect.__contains__('Greatly raises ATK ') or SAEffect.__contains__('Greatly raises DEF ') or
+        SAEffect.__contains__('greatly raising ATK ')):
             SAEffect = SAEffect.replace(f'Greatly raises ATK & DEF ', 'Raises ATK & DEF by 50% ')
             SAEffect = SAEffect.replace(f'Greatly raises DEF ', 'Raises DEF by 50% ')
             SAEffect = SAEffect.replace(f'Greatly raises ATK ', 'Raises ATK by 50% ')
             SAEffect = SAEffect.replace(f'greatly raising ATK ', 'raising ATK by 50% ')
-         elif SAEffect.__contains__('Massively raises ATK ') or SAEffect.__contains__('Massively raises DEF '):
+        elif SAEffect.__contains__('Massively raises ATK ') or SAEffect.__contains__('Massively raises DEF '):
             SAEffect = SAEffect.replace(f'Massively raises DEF ', 'Raises DEF by 100% ')
             SAEffect = SAEffect.replace(f'Massively raises ATK ', 'Raises ATK by 100% ')
-         elif (SAEffect.__contains__(' and raises ATK ') and
-         SAEffect.__contains__(' turn')):
+        elif (SAEffect.__contains__(' and raises ATK ') and
+        SAEffect.__contains__(' turn')):
             SARaise = 'R' + SAEffect[SAEffect.find(' and raises ATK ')+6:]
             SARaise = SARaise[:SARaise.find(' turn')+6]
             
@@ -286,16 +232,16 @@ def retrieveSA(response, characterID, rank, EZA):
             SAEffect = SAEffect.replace(f'Causes ', f'{SARaise} and causes ')
             SAEffect = SAEffect.replace(f'Raises ATK & DEF for ', 'Raises ATK & DEF by 50% for ')
             SAEffect = SAEffect.replace(f'Raises ATK for ', 'Raises ATK by 50% for ')
-         elif (SAEffect.__contains__(' and raises DEF ') and
-         SAEffect.__contains__(' turn')):
+        elif (SAEffect.__contains__(' and raises DEF ') and
+        SAEffect.__contains__(' turn')):
             SARaise = 'R' + SAEffect[SAEffect.find(' and raises DEF ')+6:]
             SARaise = SARaise[:SARaise.find(' turn')+6]
             
             SAEffect = SAEffect.replace(f' and r{SARaise[1:]}', '')
             SAEffect = SAEffect.replace(f'Causes ', f'{SARaise} and causes ')
             SAEffect = SAEffect.replace(f'Raises DEF for ', 'Raises DEF by 50% for ')
-         elif (SAEffect.__contains__(' and ATK ') and
-         SAEffect.__contains__(' turns')):
+        elif (SAEffect.__contains__(' and ATK ') and
+        SAEffect.__contains__(' turns')):
             SARaise = SAEffect[SAEffect.find(' and ATK ')+6:]
             SARaise = SARaise[:SARaise.find(' turns')+6]
             
@@ -303,8 +249,8 @@ def retrieveSA(response, characterID, rank, EZA):
             SAEffect = SAEffect.replace(f'Causes ', f'Raises A{SARaise} and causes ')
             SAEffect = SAEffect.replace(f'Raises ATK for ', 'Raises ATK by 50% for ')
             SAEffect = SAEffect.replace(' +', ' by ')
-         elif (SAEffect.__contains__(' and DEF ') and
-         SAEffect.__contains__(' turns')):
+        elif (SAEffect.__contains__(' and DEF ') and
+        SAEffect.__contains__(' turns')):
             SARaise = SAEffect[SAEffect.find(' and DEF ')+6:]
             SARaise = SARaise[:SARaise.find(' turns')+6]
             
@@ -312,69 +258,69 @@ def retrieveSA(response, characterID, rank, EZA):
             SAEffect = SAEffect.replace(f'Causes ', f'Raises D{SARaise} and causes ')
             SAEffect = SAEffect.replace('+', 'by ')
          
-         if (SAEffect.__contains__("damage, allies' ATK +")):
+        if (SAEffect.__contains__("damage, allies' ATK +")):
             SAEffect = SAEffect.replace(", allies' ATK ", " to enemy; raises allies' ATK by ")
             SAEffect = SAEffect.replace(" +", " ")
-         elif (SAEffect.__contains__("and allies' ATK +")):
+        elif (SAEffect.__contains__("and allies' ATK +")):
             SAEffect = SAEffect.replace(" and allies' ATK +", "; raises allies' ATK by ")
-         elif SAEffect.__contains__('and all allies'):
+        elif SAEffect.__contains__('and all allies'):
             SAEffect = SAEffect.replace(" and all allies' ", "; raises allies' ")
             SAEffect = SAEffect.replace(" +", " by ")
-         elif (SAEffect.__contains__('and raises ') and
-         SAEffect.__contains__(' allies')):
+        elif (SAEffect.__contains__('and raises ') and
+        SAEffect.__contains__(' allies')):
             SAEffect = SAEffect.replace(' and raises ', '; raises ')
             SAEffect = SAEffect.replace(" +", " ")
-         elif (SAEffect.__contains__('; ATK +') and
-         SAEffect.__contains__('for allies ')):
+        elif (SAEffect.__contains__('; ATK +') and
+        SAEffect.__contains__('for allies ')):
             SAEffect = SAEffect.replace(' ATK +', " raises allies' ATK by ")
             SAEffect = SAEffect.replace(' for allies ', ' ')
-         elif (SAEffect.__contains__("; ") and
-         SAEffect.__contains__("allies' ") and not
-         SAEffect.__contains__("raises allies' ")):
+        elif (SAEffect.__contains__("; ") and
+        SAEffect.__contains__("allies' ") and not
+        SAEffect.__contains__("raises allies' ")):
             SAEffect = SAEffect.replace('; ', '; raises ')
             SAEffect = SAEffect.replace(' +', ' by ')
             SAEffect = SAEffect.replace('raises raises', 'raises')
-         elif SAEffect.__contains__("; DEF +"):
+        elif SAEffect.__contains__("; DEF +"):
              DEFRaise = SAEffect.split('; ')[1]
              SAEffect = SAEffect[0].lower() + SAEffect[1:]
              SAEffect = "Raises " + DEFRaise + " and " + SAEffect.replace(f'; {DEFRaise}', '')
              SAEffect = SAEffect.replace('+', 'by ')
-         elif characterID == 1008811 or characterID == 1008821:
+        elif characterID == 1008811 or characterID == 1008821:
             SAEffect = SAEffect.replace(' and raises ATK & DEF', '')
             SAEffect = SAEffect.replace('Causes', 'Raises ATK & DEF by 20% and causes')
-         SAEffect = SAEffect.replace(', causes', ' and causes')
+        SAEffect = SAEffect.replace(', causes', ' and causes')
             
-         if not SAEffect.__contains__(' damage to enemy'):
+        if not SAEffect.__contains__(' damage to enemy'):
             SAEffect = SAEffect.replace('damage', 'damage to enemy')
-         if not SAEffect.__contains__('auses'):
+        if not SAEffect.__contains__('auses'):
             SAEffect = ("Causes " + SAEffect)
             SAEffect = SAEffect[:7] + SAEffect[7:8].lower() + SAEffect[8:]
         
-         SAContent = SAContent[SAContent.find(';ki&quot;:')+10:]
-         kiValue = SAContent[:SAContent.find(',&quot;lv')]
+        SAContent = SAContent[SAContent.find(';ki&quot;:')+10:]
+        kiValue = SAContent[:SAContent.find(',&quot;lv')]
         
-         if SAEffect.__contains__('Required Ki -'):
+        if SAEffect.__contains__('Required Ki -'):
             subKi = SAEffect.split('Required Ki -')[1]
             subKi = int(subKi.split(' for launching Super')[0])
             kiValue = str(int(kiValue) - subKi)
-         elif SAEffect.__contains__('Launches Super Attack when Ki is '):
+        elif SAEffect.__contains__('Launches Super Attack when Ki is '):
             subKi = SAEffect.split('Launches Super Attack when Ki is ')[1]
             subKi = int(subKi.split(' or more')[0])
             kiValue = str(subKi)
         
-         if (EZA == '1' or EZA == '2') and SAName.__contains__('(Extreme)'):
+        if (EZA == '1' or EZA == '2') and SAName.__contains__('(Extreme)'):
             SANames[i] = SAName
             SAEffects[i] = SAEffect
             kiValues[i] = kiValue
             i += 1
-         elif SAName.__contains__('(Extreme)'):
+        elif SAName.__contains__('(Extreme)'):
             return SANames, SAEffects, kiValues, kiMultiplier
-         elif int(kiValue) not in kiValues:
+        elif int(kiValue) not in kiValues:
             SANames.append(SAName)
             SAEffects.append(SAEffect)
             kiValues.append(int(kiValue))
         
-         SAContent = SAContent[SAContent.find("},{&quot;id&quot;:")+17:]
+        SAContent = SAContent[SAContent.find("},{&quot;id&quot;:")+17:]
     return SANames, SAEffects, kiValues, kiMultiplier
 
 # Retrieve name of Passive Skill
@@ -743,25 +689,45 @@ def calcATKSA(ki, SAName, SAEffect, ATK, onAttackATK, saPerBuff, saFlatBuff, cou
             if condition.__contains__(', for'):
                 cond2 = condition.replace(', for every attack performed', '')
                 cond2 = cond2.replace('hen there is', 'hen there is not')
-                print(f"ATK {cond2}):")
+                print(f"ATK {cond2}:")
                 calcATKSA(ki, SAName, SAEffect, ATK, copyATK, saPerBuff, saFlatBuff, counter, crit, superEffective, additional, rank, baseSAName, baseSAEffect, baseKiValue, baseATK)
             elif not condition.__contains__('performed'):
                 cond = cond.replace('ttack ', 'ttacks ')
-                print(f'ATK (With 0 {cond}):')
+                print(f'ATK (With 0 {cond}:')
                 calcATKSA(ki, SAName, SAEffect, ATK, copyATK, saPerBuff, saFlatBuff, counter, crit, superEffective, additional, rank, baseSAName, baseSAEffect, baseKiValue, baseATK)
                 cond = cond.replace('ttacks ', 'ttack ')
                 
             if not "limit" in locals():
-                for i in range(1, additional+2):
-                    if i == 1:
-                        print(f'ATK (With {str(i)} {cond}):')
-                    else:
-                        cond = cond.replace('ttack ', 'ttacks ')
-                        print(f'ATK (With {str(i)} {cond}):')
-                    if flat:
-                        calcATKSA(ki, SAName, SAEffect, ATK, copyATK, saPerBuff, saFlatBuff + (buff*i), counter, crit, superEffective, additional, rank, baseSAName, baseSAEffect, baseKiValue, baseATK)
-                    else:
-                        calcATKSA(ki, SAName, SAEffect, ATK, copyATK, saPerBuff + (buff*i), saFlatBuff, counter, crit, superEffective, additional, rank, baseSAName, baseSAEffect, baseKiValue, baseATK)
+                if condition.__contains__('within the turn'):
+                    for i in range(1, 16):
+                        if i == 1:
+                            print(f'ATK (With {str(i)} {cond}:')
+                        else:
+                            cond = cond.replace('ttack ', 'ttacks ')
+                            print(f'ATK (With {str(i)} {cond}:')
+                        if flat:
+                            calcATKSA(ki, SAName, SAEffect, ATK, copyATK, saPerBuff, saFlatBuff + (buff*i), counter, crit, superEffective, additional, rank, baseSAName, baseSAEffect, baseKiValue, baseATK)
+                        else:
+                            calcATKSA(ki, SAName, SAEffect, ATK, copyATK, saPerBuff + (buff*i), saFlatBuff, counter, crit, superEffective, additional, rank, baseSAName, baseSAEffect, baseKiValue, baseATK)
+                else:
+                    turnLimit = additional+2
+                    if (SAEffect.__contains__('Raises ATK by') and
+                    SAEffect.__contains__('% for ') and
+                    SAEffect.__contains__(' turns ')):
+                        turnLimit = SAEffect.split(' for ')[1]
+                        turnLimit = int(turnLimit.split(' turns ')[0])
+                        turnLimit = max((math.ceil(turnLimit/2))*(additional+1), 35)
+                    
+                    for i in range(1, turnLimit):
+                        if i == 1:
+                            print(f'ATK (With {str(i)} {cond}:')
+                        else:
+                            cond = cond.replace('ttack ', 'ttacks ')
+                            print(f'ATK (With {str(i)} {cond}:')
+                        if flat:
+                            calcATKSA(ki, SAName, SAEffect, ATK, copyATK, saPerBuff, saFlatBuff + (buff*i), counter, crit, superEffective, additional, rank, baseSAName, baseSAEffect, baseKiValue, baseATK)
+                        else:
+                            calcATKSA(ki, SAName, SAEffect, ATK, copyATK, saPerBuff + (buff*i), saFlatBuff, counter, crit, superEffective, additional, rank, baseSAName, baseSAEffect, baseKiValue, baseATK)
             else:
                 for i in range(1, int(limit/buff)+1):
                     if i == 1:
@@ -1251,6 +1217,8 @@ def calcATKSA(ki, SAName, SAEffect, ATK, onAttackATK, saPerBuff, saFlatBuff, cou
 # i.e. at start of each with [ally] on the team, at start of each when HP is x% or above/below
 def calcATKCond(characterKit, condSoTATK, atkPerBuff, atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional):
     copyCond = copy.copy(condSoTATK)
+    condSoTATK2 = 0
+    
     if (condSoTATK.head != None):
         if (condSoTATK.head.data).__contains__('ATK -'):
             buff = '-' + (copyCond.head.data).split("ATK -")[1]
@@ -1285,17 +1253,7 @@ def calcATKCond(characterKit, condSoTATK, atkPerBuff, atkFlatBuff, linkBuffs, on
         
         copyCond.removeLine()
         
-        if condition.__contains__("Once only") or condition.__contains__("once only"):
-            print(f"ATK {condition}:")
-            calcATKCond(characterKit, copyCond, newPerBuff, newFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional)  
-            print("ATK (After one-time buff):")
-            calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional)        
-        elif condition.__contains__("for first attack only"):
-            print("\nATK for first attack: ")
-            calcATKCond(characterKit, copyCond, newPerBuff, newFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional)
-            print("\nATK after first attack: ")
-            calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional)
-        elif condition.__contains__(", per Ki Sphere obtained"):
+        if condition.__contains__(", per Ki Sphere obtained"):
             cond1 = condition.split(', per')[0]            
             cond1 = cond1.replace('When there is ', 'When there is not ')
             cond1 = cond1.replace(' Ki Spheres obtained', ' Ki Spheres not obtained')
@@ -1398,25 +1356,43 @@ def calcATKCond(characterKit, condSoTATK, atkPerBuff, atkFlatBuff, linkBuffs, on
             
             if flat:
                 if "limit" in locals():
+                    if int(limit/int(buff)) > 3:
+                        print(f"ATK (With 3 Ki Spheres Obtained):")
+                        calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (3 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional)
+                    if int(limit/int(buff)) >= 7.5:
+                        print(f"ATK (With 7.5 (AVG) Ki Spheres Obtained):")
+                        calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (7.5 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional)
+                    if int(limit/int(buff)) >= 23:
+                        print(f"ATK (With 23 (Max) Ki Spheres Obtained):")
+                        calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (23 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional)
                     print(f"ATK (With {int(limit/int(buff))} (Max) Ki Spheres Obtained):")
-                    calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (23 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional)
+                    calcATKCond(characterKit, copyCond, atkPerBuff + int(limit), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional)
                 else:
                     print(f"ATK (With 3 Ki Spheres Obtained):")
-                    calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (3 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional)
+                    calcATKCond(characterKit, copyCond, atkPerBuff + (3 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional)
                     print(f"ATK (With 7.5 (AVG) Ki Spheres obtained):")
-                    calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (7.5 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional)
+                    calcATKCond(characterKit, copyCond, atkPerBuff + (7.5 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional)
                     print(f"ATK (With 23 (Max) Ki Spheres obtained):")
-                    calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (23 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional)
+                    calcATKCond(characterKit, copyCond, atkPerBuff + (23 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional)
             else:
                 if "limit" in locals():
+                    if int(limit/int(buff)) > 3:
+                        print(f"ATK (With 3 Ki Spheres Obtained):")
+                        calcATKCond(characterKit, copyCond, atkPerBuff + (3 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional)
+                    if int(limit/int(buff)) >= 7.5:
+                        print(f"ATK (With 7.5 (AVG) Ki Spheres Obtained):")
+                        calcATKCond(characterKit, copyCond, atkPerBuff + (7.5 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional)
+                    if int(limit/int(buff)) >= 23:
+                        print(f"ATK (With 23 (Max) Ki Spheres Obtained):")
+                        calcATKCond(characterKit, copyCond, atkPerBuff + (23 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional)
                     print(f"ATK (With {int(limit/int(buff))} (Max) Ki Spheres Obtained):")
-                    calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (23 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional)
+                    calcATKCond(characterKit, copyCond, atkPerBuff + int(limit), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional)
                 else:
-                    print(f"ATK (With 3 Ki Spheres Obtained{cond2}):")
+                    print(f"ATK (With 3 Ki Spheres Obtained):")
                     calcATKCond(characterKit, copyCond, atkPerBuff + (3 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional)
-                    print(f"ATK (With 7.5 (AVG) Ki Spheres obtained{cond2}):")
+                    print(f"ATK (With 7.5 (AVG) Ki Spheres obtained):")
                     calcATKCond(characterKit, copyCond, atkPerBuff + (7.5 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional)
-                    print(f"ATK (With 23 (Max) Ki Spheres obtained{cond2}):")
+                    print(f"ATK (With 23 (Max) Ki Spheres obtained):")
                     calcATKCond(characterKit, copyCond, atkPerBuff + (23 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional)
         elif condition.__contains__("For every Rainbow Ki Sphere obtained"):
             if flat:
@@ -1705,6 +1681,7 @@ def calcATKCond(characterKit, condSoTATK, atkPerBuff, atkFlatBuff, linkBuffs, on
                 condition = condition.replace(" has", " doesn't have")
                 condition = condition.replace(", as the ", ", not as the ")
                 condition = condition.replace("(For ", "(After ")
+                condition = condition.replace("once only", "after one-time buff")
                 
                 print(f"ATK {condition}:")
                 calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional)
@@ -1714,7 +1691,7 @@ def calcATKCond(characterKit, condSoTATK, atkPerBuff, atkFlatBuff, linkBuffs, on
         lead = 5
         # Dev note: Temp condition, manually checks for units supported under 220% leads:
         # - Vegto, Gogta, SSBE, Monke, Rice, Frank, Ultra Vegeta 1, Fishku, Cell Games,
-        # U7 Pawn, U6 Pawn, KFC
+        # U7 Pawn, U6 Pawn, KFC, Serious Tao
         if ((("Earth-Protecting Heroes" in characterKit.categories or 
         "Fused Fighters" in characterKit.categories or
         "Pure Saiyans" in characterKit.categories) and
@@ -1745,6 +1722,10 @@ def calcATKCond(characterKit, condSoTATK, atkPerBuff, atkFlatBuff, linkBuffs, on
         "Accelerated Battle" in characterKit.categories) and
         ("Tournament Participants" in characterKit.categories) or
         ("Super Bosses" in characterKit.categories)) or
+        (("Mission Execution" in characterKit.categories or 
+        "Earth-Bred Fighters" in characterKit.categories) and
+        ("Dragon Ball Seekers" in characterKit.categories) or
+        ("Earthlings" in characterKit.categories)) or
         "Universe Survival Saga" in characterKit.categories or 
         "Giant Ape Power" in characterKit.categories or
         "Full Power" in characterKit.categories or 
@@ -2014,12 +1995,17 @@ def calculateMain(characterKit, atkLinkBuffs, defLinkBuffs, crit):
         if line.__contains__('and damage reduction rate '):
             line = line.replace(line[line.find('} and damage reduction rate'):line.find('} for')], '')
         if line.__contains__('& chance of performing a critical hit '):
-            line = line.replace('& chance of performing a critical hit', '')
+            line = line.replace(' & chance of performing a critical hit', '')
             line = line.replace(', DEF  ', ' & DEF ')
+        elif line.__contains__('} and chance of performing a critical hit '):
+            line = line.replace(line[line.find('} and chance of performing'):], '}')
         elif line.__contains__('chance of performing a critical hit '):
             line = line.replace(line[line.find('} and '):line.find('hit ')+3], '}')
             if not line.__contains__('}'):
                 line = '}' + line.split('}')[0]
+        if (line.__contains__("} and ") and
+        line.__contains__("chance of evading enemy's attack ")):
+            line = line.replace(line[line.find('} and '):line.find('attack ')+6], '}')
 
         if line.__contains__("*"):
             condition = line[1:-1]
@@ -2104,19 +2090,6 @@ def calculateMain(characterKit, atkLinkBuffs, defLinkBuffs, crit):
                         cond4 = cond4.replace('ATK & ', "")
                         condSoTDEF.insertLine(cond4)
             
-        if line.__contains__('} and chance of performing a critical hit'):
-            line1 = line.split('and chance of performing a critical hit ')[0]
-            line2 = line.split(' and chance of performing a critical hit ')[1]
-            if line2.__contains__('} '):
-                line2 = line2.split('} ')[1]
-                line = line1 + line2
-            else:
-                line = line1
-        line = line.replace('and performs a critical hit ', '')
-            
-        if line.__contains__("chance of evading enemy's attack"):
-            line = line[:line.find(' and ')] + line[line.find("enemy's attack")+14:]
-            
         if (((line.__contains__("aunches an additional attack that has a") or
         line.__contains__("chance of launching an additional attack that has a")) and
         line.__contains__("chance of becoming a Super Attack")) or 
@@ -2155,7 +2128,7 @@ def calculateMain(characterKit, atkLinkBuffs, defLinkBuffs, crit):
     
 # Read through kit, sepearate lines based on activiation condition (SoT vs. 'on attack')
 # Then, calculate SoT defense and conditional SoT defense  
-def calculateStats(characterKit, partnerKit):
+def calculateLinks(characterKit, partnerKit):
     os.system('cls')
     print(f"Calculating: {characterKit.rank} {characterKit.type} {characterKit.name} (Linked with {partnerKit.rank} {partnerKit.type} {partnerKit.name}):")
     
@@ -2360,8 +2333,8 @@ def getKit(characterID):
         
         transform = ''
         # Set ID of transformed card if detected
-        if not response.__contains__('}],&quot;transformation_character_id&quot;:null'):
-            transform = response[response.find('}],&quot;transformation_character_id&quot;:')+43:]
+        if not response.__contains__('],&quot;transformation_character_id&quot;:null'):
+            transform = response[response.find('],&quot;transformation_character_id&quot;:')+43:]
             transform = transform[:7]
                 
         title = response[response.find(name):response.find(f' | DOKKAN.FYI')]
@@ -2382,13 +2355,25 @@ def getKit(characterID):
         response = (requests.get(f'https://dokkan.fyi/characters/{characterID}')).text
         stats = retrieveStats(response, characterID, EZA, rank)
         
+        activeName = ''
+        active = ''
+        activeCond = ''
+        if not response.__contains__('active_skill&quot;:null,'):
+            response = response[response.find('active_skill&quot;:{&quot;id&quot;:'):]
+            response = response.replace('&#39;', "'")
+            response = response.replace('\\n', '')
+            response = response.replace('&amp;', '&')
+            activeName = response[response.find(',&quot;name&quot;:&quot;')+24:response.find('&quot;,&quot;description&quot;:&quot;')]
+            active = response[response.find('&quot;,&quot;description&quot;:&quot;')+37:response.find('&quot;,&quot;condition&quot;:&quot;')]
+            activeCond = response[response.find('&quot;,&quot;condition&quot;:&quot;')+35:response.find('&quot;,&quot;effects&quot;:[{&quot;id&quot;:')]
+        
         if characterID >= 4000000:
             name += (' (<->)')
         
         # Create object containing all unit kit details
         characterKit = Unit(characterID, unitClass, type, rank, title, 
         name, lead, SANames, SAEffects, passiveName, passive, links, linkBuffs,
-        categories, stats, kiValues, kiMultiplier, transform)
+        categories, stats, kiValues, kiMultiplier, transform, activeName, active, activeCond)
 
         os.system('cls')
         return characterKit
@@ -2497,6 +2482,12 @@ def main(characterID):
     
     print(f'\nPassive Skill: {mainUnit.passiveName}')
     print(mainUnit.passive)
+    
+    if (mainUnit.activeName != ''):
+        print(f'\nActive Skill: {mainUnit.activeName}')
+        print(f'- {mainUnit.active}')
+        print(f'- Condition: {mainUnit.activeCond}')
+    
     print('\nLink Skills:')
     print(mainUnit.links)
     print(f'\nCategories:\n{mainUnit.categories}')
@@ -2510,13 +2501,14 @@ def main(characterID):
     
     if not mainUnit.links:
         input("No partners available. Click any button to continue: ")
-        calculateStats(mainUnit, mainUnit)
+        calculateLinks(mainUnit, mainUnit)
     else:
         partnerID = int(input("Enter the partner character's Card ID from Dokkan.FYI: "))
         partnerKit = getPartnerKit(partnerID)
-        calculateStats(mainUnit, partnerKit)
+        calculateLinks(mainUnit, partnerKit)
     
     if mainUnit.transform != '':
+        print(mainUnit.transform)
         input("Click any button to continue with transformed form:")
         main(int(mainUnit.transform))
     else:
