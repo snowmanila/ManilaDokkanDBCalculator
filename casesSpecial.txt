@@ -8,8 +8,9 @@ When attacking with y or more Ki
 - Launches an additional Super Attack (1007450)
 
 When receiving a normal attack
-- Counters with enormous power (1012630)
-- Damage reduction rate +x% temporarily and counters with enormous power (1008410)
+- Counters with enormous power (1012630) ✓
+- Damage reduction rate +x% temporarily and counters with enormous power (1008410) ✓
+- Damage reduction rate +x% temporarily and counters with tremendous power (1009331) ✓
 
 When receiving a Super Attack
 - x chance of nullifying it and countering with enormous power (1009420) ✓

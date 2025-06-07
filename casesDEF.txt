@@ -1,7 +1,8 @@
 Basic effect(s)
 - DEF +x (1005940)
-- DEF +x% (1001670) ✓
-- Ki +z and DEF +x% (1017530) ✓
+- DEF +x% (1001670)
+- DEF -x% (1007321)
+- Ki +z and DEF +x% (1017530)
 - All allies' DEF +x (1001340)
 - All allies' DEF +x% (1001630)
 - All allies' Ki +z and DEF +x% (1030250)
@@ -9,6 +10,7 @@ Basic effect(s)
 - y Type allies' Ki +z and DEF +x% (1006270)
 - y Class allies' DEF +x% (1011810)
 - y Class allies' Ki +z and DEF +x% (1013360)
+- [Opposite] Class allies' Ki +z and DEF +x% (1005301-SEZA) (Shouldn't count)
 - y Category allies' DEF +x% (1015850)
 - y Category z Class allies' DEF +x% (1020960)
 - y Category allies' Ki +z and DEF +x% (1012060)
@@ -25,6 +27,7 @@ When HP is y% or less
 
 As the z attacker in a turn
 - DEF +x% (1011270)
+- Ki +z and DEF +x% (1004251-EZA)
 
 When facing only 1 enemy
 - DEF +x (1000290)
@@ -45,10 +48,14 @@ When the character is the y to obtain Ki Spheres in a turn
 - DEF +x% (1024100) ✓
 - All allies' Ki +z and DEF +x% (1024100) ✓
 
+For y turns from the character's entry turn
+- DEF +x% (1005731-SEZA)
+
 For y turn(s) from the character's entry turn
 - DEF +x (1007920)
 - DEF +x% (1010130)
 - Ki +z and DEF +x% (1016210)
+-y Class allies' DEF +x% (1006211-SEZA)
 
 On the y turns from the character's entry turn
 - DEF +x% per y Ki Sphere obtained (1028750) ✓
@@ -66,23 +73,28 @@ When there is another y Category ally on the team
 When z or more y Category allies are on the team
 - DEF +x% (1027740) ✓
 
-When there is another y Category ally attacking in the same turn
+When there is another y ally attacking in the same turn
 - DEF +x% (1029900)
 - DEF +x% when receiving an attack (1029900)
 - DEF +x% as the y attacker in a turn (1028780)
+- All allies' DEF +x1% and chance of performing a critical hit +x2% (1004651-SEZA)
 
 When there is an ally whose name includes y on the team
 - DEF +x% (1018140)
+- All allies' Ki +z and DEF +x% (1009231-EZA)
+- Guards all attacks as the y attacker in a turn plus an additional DEF +x% if that ally is attacking in the same turn (1009231-EZA)
 
 When there is an ally whose name includes y attacking in the same turn
 - DEF +x% at the start of each turn (1012310) ✓
 
 When all allies attacking in the same turn are y characters
 - DEF +x% (1025320)
+- All allies' chance of performing a critical hit +x1% and DEF +x2% (1009741-EZA)
 
-When there is a y Category enemy
+When there is a y enemy
 - DEF +x% (1026860)
 - Ki +z and DEF +x% (1016090)
+- All allies' Ki +z and DEF +x% (self excluded) (1006791-SEZA)
 
 The more HP remaining
 - DEF + (up to x%) (1017880)
@@ -103,7 +115,11 @@ When attacking with y or more Ki
 - DEF +x% (1016710)
 - DEF +x% when HP is z% or more (1031170) ✓
 - DEF -x% (1007830)
-- All allies' DEF +x% (1031030) ✓
+- Ki +z and DEF +x% (1005741-EZA)
+- All allies' DEF +x% (1031030)
+
+When attacking with y Ki Spheres obtained
+- DEF +x% (1008851-SEZA)
 
 After receiving an attack
 - DEF +x% (1030000)
@@ -134,6 +150,9 @@ For every attack performed
 
 For every Super Attack performed
 - DEF +x% (up to y%) (1021090)
+
+After evading an attack
+- DEF +x% for y turn(s) (1003211-SEZA)
 
 Every time the character performs y Super Attacks in battle
 - DEF +x% within the turn (up to once within a turn) (1027360)
