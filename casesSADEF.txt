@@ -1,35 +1,47 @@
-Huge Damage
-- Raises DEF and causes huge damage to enemy (1020760)
+Raises:
+- Raises ATK & DEF, Extreme Damage - 10%
+- Raises ATK & DEF - 20%
+- Raises DEF/Raises ATK & DEF for - 30%
+- Greatly raises DEF/Greatly raises ATK & DEF - 50%
+- Massively raises DEF/Massively raises ATK & DEF - 100%
 
-Extreme Damage
-- Raises DEF and causes extreme damage to enemy (1013040)
-
-Supreme Damage
-- Raises DEF for 1 turn and causes supreme damage to enemy (1030250)
-- Raises DEF for 1 turn, causes supreme damage to enemy and lowers ATK (1020060)
-- Raises DEF for 1 turn. causes supreme damage to enemy and lowers DEF (1025850)
-- Raises DEF for 1 turn. causes supreme damage to enemy and greatly lowers DEF (1008131-EZA)
-- Raises DEF for 1 turn and causes supreme damage with a y chance of stunning the enemy (1021710)
-- Raises DEF for 1 turn, causes supreme damage to enemy and seals Super Attack (1020880)
-- Raises DEF for x turns and causes supreme damage to enemy (1027170)
-- Greatly raises DEF for 1 turn and causes supreme damage to enemy (1016430)
-- Greatly raises DEF for 1 turn and causes supreme damage with a y chance of stunning the enemy (1021750)
-- Massively raises DEF for 1 turn and causes supreme damage to enemy (1015740)
-- Raises DEF and causes supreme damage to enemy (1006080)
-- Raises DEF and causes supreme damage with a y chance of stunning the enemy (1017810)
-- Raises DEF, causes supreme damage to enemy and lowers DEF (1010680)
-- Greatly raises DEF and causes supreme damage to enemy (1015520)
-- Causes supreme damage to enemy and raises DEF by x% for 1 turn (1016350)
-- Causes supreme damage to enemy; DEF +x% for 1 turn (1011750)
-- Causes supreme damage to enemy and DEF +x% for 3 turns (1010130)
-- Causes supreme damage to enemy and raises DEF for x turns (1016720)
-- Causes supreme damage to enemy and raises DEF by x% for 3 turns (1012670)
-
-Immense Damage
-- Raises DEF for 1 turn and causes immense damage to enemy (1013850)
-- Raises DEF and causes immense damage to enemy (1016500)
-- Greatly raises DEF for 1 turn and causes immense damage to enemy (1018110)
-- Greatly raises DEF for 1 turn, causes immense damage to enemy and greatly lowers DEF (1009351-EZA)
-- Causes immense damage to enemy and raises DEF by 30% for 3 turns (1004251-EZA)
-- Causes immense damage; DEF +30% for 6 turns
-- Causes immense damage to enemy; DEF -30% for 1 turn (1011760)
+Effects:
+- Raises DEF and causes y damage to enemy (1020760)
+- Raises DEF and causes y damage with a y2 chance of stunning the enemy (1017810)
+- Raises DEF, causes y damage to enemy and lowers ATK (1016081-EZA)
+- Raises DEF, causes y damage to enemy and lowers DEF (1010680)
+- Raises DEF, causes y damage to enemy and greatly lowers DEF (1010481-EZA)
+- Raises DEF for 1 turn and causes y damage to enemy (1030250)
+- Raises DEF for 1 turn and causes y damage to enemy; raises allies' DEF by x% for 1 turn (1013531-EZA)
+- Raises DEF for 1 turn and causes y damage with a y2 chance of stunning the enemy (1021710)
+- Raises DEF for 1 turn and causes y damage to all enemies with a y2 chance of stunning them (1015291-EZA)
+- Raises DEF for 1 turn, causes y damage to enemy and lowers ATK (1020060)
+- Raises DEF for 1 turn, causes y damage to enemy and lowers DEF (1025850)
+- Raises DEF for 1 turn, causes y damage to enemy and lowers ATK & DEF (1010851-EZA)
+- Raises DEF for 1 turn, causes y damage to enemy and greatly lowers ATK & DEF (1014911-EZA)
+- Raises DEF for 1 turn, causes y damage to enemy and greatly lowers DEF (1008131-EZA)
+- Raises DEF for 1 turn, causes y damage to enemy and massively lowers DEF (1012161-EZA)
+- Raises DEF for 1 turn, causes y damage to enemy and seals Super Attack (1020880)
+- Raises DEF for y2 turns and causes y damage to enemy (1027170)
+- Raises DEF by x% for y2 turns, causes y damage to enemy and lowers ATK & DEF (1016371-EZA)
+- Greatly raises DEF and causes y damage to enemy (1015520)
+- Greatly raises DEF, causes y damage to enemy and lowers ATK (1015471-EZA)
+- Greatly raises DEF, causes y damage to enemy and lowers ATK & DEF (4015481-EZA)
+- Greatly raises DEF for 1 turn and causes y damage to enemy (1016430)
+- Greatly raises DEF for 1 turn and causes y damage with a y chance of stunning the enemy (1021750)
+- Greatly raises DEF for 1 turn, causes y damage to enemy and lowers ATK (1016401-EZA)
+- Greatly raises DEF for 1 turn, causes y damage to enemy and lowers DEF (1010731-EZA)
+- Greatly raises DEF for 1 turn, causes y damage to enemy and greatly lowers ATK & DEF (4012931-EZA)
+- Greatly raises DEF for 1 turn, causes y damage to enemy and greatly lowers DEF (1009351-EZA)
+- Greatly raises DEF for 1 turn, causes y damage to enemy and seals Super Attack (1010311-EZA)
+- Massively raises DEF for 1 turn and causes y damage to enemy (1015740)
+- Causes y damage to enemy and raises DEF for y2 turns (1016720)
+- Causes y damage to enemy and raises DEF by x% for 1 turn (1016350)
+- Causes y damage to enemy and raises DEF by x% for y2 turns (1011141)
+- Causes y damage to enemy and raises allies' DEF by x% for 1 turn (1016581-EZA)
+- Causes y damage to enemy and DEF +x% for y2 turns (1010130)
+- Causes y damage to enemy and greatly lowers DEF; raises allies' DEF by x% for 1 turn (1013791-EZA)
+- Causes y damage to enemy; DEF +x% for 1 turn (1011750)
+- Causes y damage to enemy; DEF -x% for 1 turn (1011760)
+- Causes y damage; DEF +x% for y2 turns
+- Causes y damage; allies' DEF +x% for 1 turn (1009631)

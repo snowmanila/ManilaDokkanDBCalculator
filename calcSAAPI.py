@@ -53,6 +53,18 @@ class Unit:
         self.transform = transform
         self.active = active
         
+# Data Class for extra things post-transformation/exchange/etc.
+@dataclass
+class transformUtil:
+    stackAvg: int
+    standby: list
+    domain: list
+    
+    def __init__(self, stackAvg, standby, domain):
+        self.stackAvg = stackAvg
+        self.standby = standby
+        self.domain = domain
+        
 # Class for keeping track of a linking partner
 @dataclass
 class Partner:
@@ -127,7 +139,25 @@ class LinkedList:
     # - Limit-Breaking Form - ATK +10% when performing a Super Attack
     # - Legendary Power - ATK +15% when performing a Super Attack
 
-# Dev Note: Rework API calls in future
+# Dev Note: Rework API calls in future (Dokkan.wiki, incorporate with future team builder?)
+
+# Units that do not fit in terminal:
+# - SEZA LR INT SSJ2 Gohan
+# - EZA UR PHY Future Android #17
+# - EZA UR TEQ Android #18
+
+# Dev Note: Adjust stacking patterns between:
+# Units with multiple SAs + multiple stacking patterns (STR Perfect Cell)
+# Units with perm + temp raises (TEQ LR Dragon Fist EZA)
+# Units with stacking base + temp transformed forms (TEQ Ultimate Gohan?)
+# Units with temp base + stacking transformed forms (AGL Turles)
+# Units with stacking base + transformed forms (INT UI Goku)
+
+# Dev Note: Adjust AGL LR Gotenks
+# Dev Note: Adjust STR Buu's transformations (Multi-select?)
+# Dev Note: Adjust TEQ LR Broly's EZA stacks (Multi-select?)
+
+# Dev Note: Adjust stacking quantities in calculation, refer to additional documentation
 
 # Retrieve leader skill
 def retrieveLead(response, rank, EZA):
@@ -176,6 +206,7 @@ def retrieveSA(response, characterID, rank, EZA):
         
         SAContent = SAContent[SAContent.find('&quot;,&quot;description&quot;:&quot;')+37:]
         SAEffect = SAContent[:SAContent.find('&quot;,&quot;effects')]
+        
         if SAEffect.__contains__(',&quot;description&quot;:&quot;'):
             SAEffect = SAEffect[SAEffect.find(',&quot;description&quot;:&quot;')+31:]
         
@@ -184,8 +215,10 @@ def retrieveSA(response, characterID, rank, EZA):
             effect = SAContent[:SAContent.find('&quot;,&quot;description&quot;:&quot;')]
             
             # Dev Note: Fix SA transformations for post-EZA kits (INT Buuhan, etc.)
-            if SAContent.__contains__(',&quot;name&quot;:&quot;Super Attack Transformation &quot;,&quot;description&quot;:&quot;'):
+            if SAContent.__contains__('Super Attack Transformation &quot;,&quot;description&quot;:&quot;'):
                 effect = SAContent[SAContent.find('Super Attack Transformation &quot;,&quot;description&quot;:&quot;')+65:SAContent.find('&quot;,&quot;lv')]
+            if SAContent.__contains__('Super Attack Transformation&quot;,&quot;description&quot;:&quot;') and EZA != 0:
+                effect = SAContent[SAContent.find('Super Attack Transformation&quot;,&quot;description&quot;:&quot;')+64:SAContent.find('&quot;,&quot;lv')]
             if not effect.__contains__(',&quot;name&quot;:&quot;'):
                 SAEffect += f" ({effect})"
         SAEffect = SAEffect.replace("\\n", "")
@@ -194,9 +227,17 @@ def retrieveSA(response, characterID, rank, EZA):
         SAEffect = SAEffect.replace("&quot;", "")
         SAEffect = SAEffect.replace(" )", ")")
         
+        if SAEffect.__contains__('aises ATK and raises DEF for 1 turn'):
+            SAEffect = SAEffect.replace('aises ATK and raises DEF for', 'aises ATK for 1 turn, raises DEF for')
+                
         if (characterID == 1001401 or characterID == 1003341 or
         characterID == 2000231 or (characterID == 1008531 and EZA == 0)):
             SAEffect = SAEffect.replace('Greatly raises ATK', 'Raises ATK by 67%')
+        elif characterID == 1010061:
+            SAEffect = SAEffect.replace(' and raises ATK for 1 turn', '')
+            SAEffect = SAEffect.replace('Causes ', 'Raises ATK by 30% for 1 turn and causes ')
+        elif characterID == 1010071 and EZA == 0:
+            SAEffect = SAEffect.replace('Causes mega-colossal damage to enemy and greatly raises ATK for 1 turn', 'Raises ATK by 50% for 1 turn and causes mega-colossal damage to enemy')
         elif SAEffect.__contains__('Raises ATK & DEF for '):
             SAEffect = SAEffect.replace(f'Raises ATK & DEF ', 'Raises ATK & DEF by 30% ')
         elif ((SAEffect.__contains__('Raises ATK & DEF ') or
@@ -208,27 +249,40 @@ def retrieveSA(response, characterID, rank, EZA):
                 SAEffect = SAEffect.replace(f'Raises ATK & DEF', 'Raises ATK & DEF by 10%')
             else:
                 SAEffect = SAEffect.replace(f'Raises ATK & DEF', 'Raises ATK & DEF by 20%')
-        elif ((SAEffect.__contains__('Raises ATK') or SAEffect.__contains__('Raises DEF')) and
+        elif ((SAEffect.__contains__('Raises ATK') or SAEffect.__contains__('Lowers own ATK')) and
         not SAEffect.__contains__(' by ')):
-            SAEffect = SAEffect.replace(f'aises DEF', 'aises DEF by 30%')
             SAEffect = SAEffect.replace(f'aises ATK', 'aises ATK by 30%')
-        elif (SAEffect.__contains__('Greatly raises ATK') or SAEffect.__contains__('Greatly raises DEF') or
-        SAEffect.__contains__('greatly raising ATK ')):
+            SAEffect = SAEffect.replace(f'Lowers own ATK', 'Raises ATK by -30%')
+        elif (SAEffect.__contains__('Greatly raises ATK') or
+        SAEffect.__contains__('greatly raising ATK ') or
+        SAEffect.__contains__('ATK & DEF being greatly raised')):
+            SAEffect = SAEffect.replace(f'Greatly raises ATK and raises DEF ', 'Raises ATK by 50% for 1 turn, raises DEF by 30% ')
             SAEffect = SAEffect.replace(f'Greatly raises ATK & DEF ', 'Raises ATK & DEF by 50% ')
-            SAEffect = SAEffect.replace(f'Greatly raises DEF', 'Raises DEF by 50%')
             SAEffect = SAEffect.replace(f'Greatly raises ATK', 'Raises ATK by 50%')
+            SAEffect = SAEffect.replace(f'greatly raises ATK', 'raises ATK by 50%')
             SAEffect = SAEffect.replace(f'greatly raising ATK ', 'raising ATK by 50% ')
-        elif SAEffect.__contains__('Massively raises ATK') or SAEffect.__contains__('Massively raises DEF'):
+            SAEffect = SAEffect.replace(f'ATK & DEF being greatly raised', 'raises ATK & DEF by 50%')
+        elif SAEffect.__contains__('assively raises ATK') or SAEffect.__contains__('Massively raises DEF'):
             SAEffect = SAEffect.replace(f'Massively raises ATK & DEF', 'Raises ATK & DEF by 100%')
             SAEffect = SAEffect.replace(f'Massively raises DEF', 'Raises DEF by 100%')
             SAEffect = SAEffect.replace(f'Massively raises ATK', 'Raises ATK by 100%')
+            SAEffect = SAEffect.replace(f'massively raises ATK', 'raises ATK by 100%')
         elif (SAEffect.__contains__(' and raises ATK ') and
         SAEffect.__contains__(' turn')):
             SARaise = 'R' + SAEffect[SAEffect.find(' and raises ATK ')+6:]
             SARaise = SARaise[:SARaise.find(' turn')+6]
             
             SAEffect = SAEffect.replace(f' and r{SARaise[1:]}', '')
-            SAEffect = SAEffect.replace(f'Causes ', f'{SARaise} and causes ')
+            SAEffect = f'{SARaise}, {SAEffect}'.replace(', Causes', ' and causes')
+            SAEffect = SAEffect.replace(f'Raises ATK & DEF for ', 'Raises ATK & DEF by 50% for ')
+            SAEffect = SAEffect.replace(f'Raises ATK for ', 'Raises ATK by 50% for ')
+        elif (SAEffect.__contains__('; raises ATK ') and
+        SAEffect.__contains__(' turn')):
+            SARaise = 'R' + SAEffect[SAEffect.find('; raises ATK ')+3:]
+            SARaise = SARaise[:SARaise.find(' turn')+6]
+            
+            SAEffect = SAEffect.replace(f'; r{SARaise[1:]}', '')
+            SAEffect = f'{SARaise}, {SAEffect}'.replace(', Causes', ' and causes')
             SAEffect = SAEffect.replace(f'Raises ATK & DEF for ', 'Raises ATK & DEF by 50% for ')
             SAEffect = SAEffect.replace(f'Raises ATK for ', 'Raises ATK by 50% for ')
         elif (SAEffect.__contains__(' and raises DEF ') and
@@ -238,7 +292,10 @@ def retrieveSA(response, characterID, rank, EZA):
             
             SAEffect = SAEffect.replace(f' and r{SARaise[1:]}', '')
             SAEffect = SAEffect.replace(f'Causes ', f'{SARaise} and causes ')
+            SAEffect = SAEffect.replace(f', causes ', f', {SARaise} and causes ')
             SAEffect = SAEffect.replace(f'Raises DEF for ', 'Raises DEF by 50% for ')
+            SAEffect = SAEffect.replace(f'Raises ATK for ', 'Raises ATK by 30% for ')
+            SAEffect = SAEffect.replace(f', Raises', ', raises')
         elif (SAEffect.__contains__(' and ATK ') and
         SAEffect.__contains__(' turns')):
             SARaise = SAEffect[SAEffect.find(' and ATK ')+6:]
@@ -295,6 +352,19 @@ def retrieveSA(response, characterID, rank, EZA):
             SAEffect = SAEffect.replace(' and greatly raises ATK', '')
             SAEffect = SAEffect.replace('Causes', 'Raises ATK by 50% and causes')
         SAEffect = SAEffect.replace(', causes', ' and causes')
+        
+        if SAEffect.__contains__('Raises DEF'):
+            SAEffect = SAEffect.replace(f'Raises DEF', 'Raises DEF by 30%')
+        if SAEffect.__contains__('reatly raises DEF'):
+            SAEffect = SAEffect.replace(f', Greatly raises DEF', ', raises DEF by 50%')
+            SAEffect = SAEffect.replace(f'Greatly raises DEF', 'Raises DEF by 50%')
+            SAEffect = SAEffect.replace(f'greatly raises DEF', 'raises DEF by 50%')
+        #elif SAEffect.__contains__('enemy and raises DEF '):
+            #SARaise = 'R' + SAEffect[SAEffect.find('enemy and ')+11:SAEffect.find('turn')+4]
+            #SAEffect = f'{SARaise} and {SAEffect.replace(SARaise, "")}'
+            #SAEffect = SAEffect.replace('and Causes', 'and causes')
+        elif SAEffect.__contains__('DEF being reduced'):
+            SAEffect = SAEffect.replace(f'DEF being reduced', 'raises DEF by -30%')
             
         if not SAEffect.__contains__(' damage to enemy'):
             SAEffect = SAEffect.replace('damage', 'damage to enemy')
@@ -302,8 +372,12 @@ def retrieveSA(response, characterID, rank, EZA):
             SAEffect = ("Causes " + SAEffect)
             SAEffect = SAEffect[:7] + SAEffect[7:8].lower() + SAEffect[8:]
             
-        if SAEffect.__contains__(', raises DEF '):
+        if SAEffect.__contains__(', raises DEF ') and not SAEffect.__contains__(', raises DEF by '):
             SAEffect = SAEffect.replace(', raises DEF ', ', raises DEF by 30% ')
+            
+        if SAEffect.__contains__('(Super Attack by '):
+            SAEffect = SAEffect.replace('(Super Attack by ', '(Super Attack +')
+        SAEffect = SAEffect.replace('(Super Attack 30', '(Super Attack +30')
         
         SAContent = SAContent[SAContent.find(';ki&quot;:')+10:]
         kiValue = SAContent[:SAContent.find(',&quot;lv')]
@@ -530,15 +604,21 @@ rank, SANames, SAEffects, kiValues, kiMultiplier, additional):
     buff = 0
     flat = True
     if active:
-        if active[1].__contains__('ATK ') and active[1].__contains__(' for 1 turn'):
+        if active[1].__contains__('critical hit'):
+            crit = True
+        
+        if (active[1].__contains__('ATK ') and active[1].__contains__('% ') and
+        not active[1].__contains__('damage to enemy') and not active[1].__contains__('sacrificing ')):
             buff = active[1].split('ATK ')[1]
             
-            if active[1].__contains__("raises allies' ATK by"):
+            if active[1].__contains__(" allies' ATK by"):
                 buff = buff.split('by ')[1]
             
-            if buff.__contains__('% '):
+            if buff.__contains__('% ') or buff.__contains__('%,'):
                 flat = False
-                buff = int(buff.split('% ')[0])
+                if buff.__contains__('& DEF +'):
+                    buff = buff.split('& DEF +')[1]
+                buff = int(buff.split('%')[0])
             else:
                 buff = int(buff.split(' ')[0])
             print(f'{ATK} (Before Activating Active Skill: "{active[0]}")')
@@ -555,30 +635,38 @@ rank, SANames, SAEffects, kiValues, kiMultiplier, additional):
             
             calcActiveATK([], ATK, activeATK, onAttackATK, crit, 
             superEffective, rank, SANames, SAEffects, kiValues, kiMultiplier, additional)
-        
+    
+    baseSAName = SANames[kiValues.index(min(kiValues))]
+    baseSAEffect = SAEffects[kiValues.index(min(kiValues))]
+    baseKiValue = kiValues[kiValues.index(min(kiValues))]
+    
     for SAName, SAEffect, kiValue in zip(SANames, SAEffects, kiValues):
         newKiMultiplier = (int(kiMultiplier)/24)*(12+int(kiValue))
         ATKnew = int(ATK * (newKiMultiplier/100)) # Apply Ki multiplier
-        print(f'{ATKnew} (With {newKiMultiplier}% Ki Multiplier)')
+        print(f'{ATKnew} (With {newKiMultiplier}% Ki Multiplier)')        
+        if SANames[0] == "None":
+            print("No Super Attack Available\n")
+            return
+        
         print(f"Launching Super Attack: {SAName} at {kiValue} Ki")
         baseATK = int(ATK * ((int(kiMultiplier)/24)*(12+int(kiValues[0]))/100))
-        calcATKSA(kiValue, SAName, SAEffect, ATKnew, onAttackATK, 0, 0, "", crit, superEffective, additional, rank, SANames[0], SAEffects[0], kiValues[0], baseATK, active, activeATK)
+        calcATKSA(kiValue, SAName, SAEffect, ATKnew, onAttackATK, 0, 0, "", crit, superEffective, additional, rank, baseSAName, baseSAEffect, baseKiValue, baseATK, active, activeATK)
     if int(kiValue) < 12 and 12 not in kiValues:
         ATKnew = int(ATK * (int(kiMultiplier)/100)) # Apply Ki multiplier
         print(f'{ATKnew} (With {kiMultiplier}% Ki Multiplier)')
         print(f"Launching Super Attack: {SAName} at 12 Ki")
         baseATK = int(ATK * ((int(kiMultiplier)/24)*(12+int(kiValues[0]))/100)) # Apply Ki multiplier
-        calcATKSA(12, SAName, SAEffect, ATKnew, onAttackATK, 0, 0, "", crit, superEffective, additional, rank, SANames[0], SAEffects[0], kiValues[0], baseATK, active, activeATK)
+        calcATKSA(12, SAName, SAEffect, ATKnew, onAttackATK, 0, 0, "", crit, superEffective, additional, rank, baseSAName, baseSAEffect, baseKiValue, baseATK, active, activeATK)
     if rank == "LR" and int(kiValue) < 18:
-        print(f'{ATKnew} (With {(((200-kiMultiplier)/2)+kiMultiplier)}% Ki Multiplier)')
+        print(f'{ATKnew} (With {(((200-int(kiMultiplier))/2)+int(kiMultiplier))}% Ki Multiplier)')
         print(f"Launching Super Attack: {SAName} at 18 Ki")
-        ATKnew = int(ATK * ((((200-kiMultiplier)/2)+kiMultiplier)/100)) # Apply Ki multiplier
-        calcATKSA(18, SAName, SAEffect, ATKnew, onAttackATK, 0, 0, "", crit, superEffective, additional, rank, SANames[0], SAEffects[0], kiValues[0], baseATK, active, activeATK)
+        ATKnew = int(ATK * ((((200-int(kiMultiplier))/2)+int(kiMultiplier))/100)) # Apply Ki multiplier
+        calcATKSA(18, SAName, SAEffect, ATKnew, onAttackATK, 0, 0, "", crit, superEffective, additional, rank, baseSAName, baseSAEffect, baseKiValue, baseATK, active, activeATK)
     if rank == "LR":
         print(f'{ATKnew} (With 200% Ki Multiplier)')
         print(f"Launching Super Attack: {SAName} at 24 Ki")
         ATKnew = int(ATK * 2) # Apply Ki multiplier
-        calcATKSA(24, SAName, SAEffect, ATKnew, onAttackATK, 0, 0, "", crit, superEffective, additional, rank, SANames[0], SAEffects[0], kiValues[0], baseATK, active, activeATK)
+        calcATKSA(24, SAName, SAEffect, ATKnew, onAttackATK, 0, 0, "", crit, superEffective, additional, rank, baseSAName, baseSAEffect, baseKiValue, baseATK, active, activeATK)
 
 # Calculate ATK stat given 'on attack' conditions (When attacking, per attack
 # evaded/received/performed, when the target enemy ..., etc.)
@@ -688,7 +776,20 @@ def calcATKSA(ki, SAName, SAEffect, ATK, onAttackATK, saPerBuff, saFlatBuff, cou
             condition = condition.replace(', or ', ', for ')
             print(f'ATK {condition}:')
             calcATKSA(ki, SAName, SAEffect, ATK, copyATK, newSAPerBuff, newSAFlatBuff, counter, crit, superEffective, additional, rank, baseSAName, baseSAEffect, baseKiValue, baseATK, active, [activeATK, newSAPerBuff, newSAFlatBuff])
-        elif condition.__contains__('whenever guard is activated'):
+        elif condition.__contains__('Whenever guard is activated'):
+            if not condition.__contains__('(up to') and not "limit" in locals():
+                limit = buff
+            
+            print(f'ATK (Before guard is activated):')
+            calcATKSA(ki, SAName, SAEffect, ATK, copyATK, saPerBuff, saFlatBuff, counter, crit, superEffective, additional, rank, baseSAName, baseSAEffect, baseKiValue, baseATK, active, activeATK)
+            
+            for i in range(1, int(limit/buff)+1):
+                if i == 1:
+                    print(f'ATK (Guard activated {i} time):')
+                else:
+                    print(f'ATK (Guard activated {i} times):')
+                calcATKSA(ki, SAName, SAEffect, ATK, copyATK, saPerBuff + (buff*i), newSAFlatBuff, counter, crit, superEffective, additional, rank, baseSAName, baseSAEffect, baseKiValue, baseATK, active, [activeATK, saPerBuff + (buff*i), newSAFlatBuff])
+        elif condition.__contains__('henever guard is activated'):
             limit = buff
             if condition.__contains__('(up to'):
                 limit = condition.split('(up to ')[1]
@@ -703,9 +804,9 @@ def calcATKSA(ki, SAName, SAEffect, ATK, onAttackATK, saPerBuff, saFlatBuff, cou
             condition = condition.replace('are not on the', 'are on the')
             for i in range(1, int(limit/buff)+1):
                 if i == 1:
-                    print(f'ATK {condition}guard actviated {i} time:')
+                    print(f'ATK {condition}guard activated {i} time:')
                 else:
-                    print(f'ATK {condition}guard actviated {i} times:')
+                    print(f'ATK {condition}guard activated {i} times:')
                 calcATKSA(ki, SAName, SAEffect, ATK, copyATK, saPerBuff + (buff*i), newSAFlatBuff, counter, crit, superEffective, additional, rank, baseSAName, baseSAEffect, baseKiValue, baseATK, active, [activeATK, saPerBuff + (buff*i), newSAFlatBuff])
         elif condition.__contains__("he more HP remaining"):
             for i in range(0, 101):
@@ -758,7 +859,7 @@ def calcATKSA(ki, SAName, SAEffect, ATK, onAttackATK, saPerBuff, saFlatBuff, cou
                 calcATKSA(ki, SAName, SAEffect, ATK, copyATK, saPerBuff+(buff*5), saFlatBuff, counter, crit, superEffective, additional, rank, baseSAName, baseSAEffect, baseKiValue, baseATK, active, activeATK)
         elif condition.__contains__("or every "):
             cond = (condition.split('or every ')[1]).replace(',', '')
-            if condition.__contains__(', for'):
+            if condition.__contains__(', for') and not condition.__contains__('ttack performed, for'):
                 cond2 = condition.replace(', for every attack performed', '')
                 cond2 = cond2.replace('hen there is', 'hen there is not')
                 print(f"ATK {cond2}:")
@@ -1000,13 +1101,19 @@ def calcATKSA(ki, SAName, SAEffect, ATK, onAttackATK, saPerBuff, saFlatBuff, cou
             condition = condition.replace('are on the ', 'are not on the ')
             condition = condition.replace('when attacking', 'when not attacking')
             condition = condition.replace('great chance', 'without RNG chance')
+            condition = condition.replace('Great chance', 'Without RNG chance')
             condition = condition.replace(' HP is ', ' HP is not ')
             condition = condition.replace('As the ', 'Not as the ')
             condition = condition.replace('hen facing ', 'hen not facing ')
             condition = condition.replace(' obtained', ' not obtained')
+            condition = condition.replace(' turn are', ' turn are not')
+            
+            if condition.__contains__('Activates the Entrance Animation'):
+                condition = "(Without Entrance buff)"
+            
             print(f"ATK {condition}:")
             calcATKSA(ki, SAName, SAEffect, ATK, copyATK, saPerBuff, saFlatBuff, counter, crit, superEffective, additional, rank, baseSAName, baseSAEffect, baseKiValue, baseATK, active, activeATK)
-    else:
+    else:        
         ATK = int(ATK * (1 + (saPerBuff/100))) # Apply 'on attack' percentage buffs
         print(f"{ATK} (With {saPerBuff}% 'On Attack' Passive Buff)")
         ATK = int(ATK + saFlatBuff) # Apply 'on attack' flat buffs
@@ -1019,8 +1126,10 @@ def calcATKSA(ki, SAName, SAEffect, ATK, onAttackATK, saPerBuff, saFlatBuff, cou
         stack = False
         turnLimit = 0
         if (SAEffect.__contains__('aises ATK by') or
-        SAEffect.__contains__('aises ATK & DEF by')):
-            buff = SAEffect.split(' by ')[1]
+        SAEffect.__contains__('aises ATK & DEF by') and
+        not (SAEffect.__contains__('Causes') and SAEffect.__contains__('and raises DEF'))):
+            buff = SAEffect.split('aises ATK')[1]
+            buff = buff.split(' by ')[1]
             buff = int(buff.split('%')[0])
             ATKmultiplier = ATKmultiplier + (buff/100)               
             if (not SAEffect.__contains__(f'aises ATK by {buff}% for 1 turn') and
@@ -1146,16 +1255,29 @@ def calcATKSA(ki, SAName, SAEffect, ATK, onAttackATK, saPerBuff, saFlatBuff, cou
             else:
                 baseSAmultiplier = 3.95
             
+        if (SAEffect.__contains__("(Super Attack power +") or
+            SAEffect.__contains__("(Super Attack +")):
+            SAPower = SAEffect.split("(Super Attack ")[1]
+            SAPower = SAPower.split("+")[1]
+            SAPower = (int(SAPower.split("%")[0]))/100
+            SAmultiplier = SAmultiplier + SAPower
+        elif (SAEffect.__contains__("Power will increase more if Super Attack level reaches")):
+            SAmultiplier = SAmultiplier + .3
+        
         if (baseSAEffect.__contains__("(Super Attack power +") or
             baseSAEffect.__contains__("(Super Attack +")):
             SAPower = SAEffect.split("(Super Attack ")[1]
             SAPower = SAPower.split("+")[1]
             SAPower = (int(SAPower.split("%")[0]))/100
             baseSAmultiplier = baseSAmultiplier + SAPower
+        elif (baseSAEffect.__contains__("Power will increase more if Super Attack level reaches")):
+            baseSAmultiplier = baseSAmultiplier + .3
             
         if (SAEffect.__contains__('critical hit') or
         baseSAEffect.__contains__('critical hit')):
             crit = True
+        elif SAEffect.__contains__('attacks effective against all Types'):
+            superEffective = True
                 
         # Adds HiPo SA boost for SSR/UR/LR characters
         if stack:
@@ -1181,16 +1303,70 @@ def calcATKSA(ki, SAName, SAEffect, ATK, onAttackATK, saPerBuff, saFlatBuff, cou
             elif counter.__contains__("ferocious power"):
                 counterPower = 4
         
-        if (SAEffect.__contains__("% chance of Super Attack transforming for ") and
-        SAEffect.__contains__(" power!")):
+        if SAEffect.__contains__("% chance of Super Attack transforming "):
             # Dev Note: Why do 'more power' and 'even more power' mean the same thing?
             # TBF this is just for the goten/trunks/marron F2P card's pre and post=eza
             # kit, respectively, but... yeah.
             transPower = .2
             if SAEffect.__contains__('transforming for greater power'):
                 transPower = .6
-            elif SAEffect.__contains__('transforming for supremely boosted power'):
+            elif SAEffect.__contains__('Power will be supremely boosted for'):
                 transPower = .9
+                turnLimit = SAEffect.split('boosted for ')[1]
+                turnLimit = int(turnLimit.split(' turns')[0])
+                stack = True
+            
+            if turnLimit < 2:
+                turnLimit = additional
+                if rank == "SSR" or rank == "UR" or rank == "LR":
+                    turnLimit = 2 + additional
+            else:
+                turnLimit = (math.ceil(turnLimit/2))*(additional+1)
+            
+            if stack or not additional == 0:
+                if SAEffect.__contains__('Power will be supremely boosted for '):
+                    for i in range(1, turnLimit):
+                        if crit:
+                            print(f"Transformed ({int(transPower*100)}%) Super Attack APT ({str(i)} Stack): {str(int(ATK*((ATKmultiplier*i)+SAmultiplier+(transPower*i))))} (Crit: {str(int(ATK*((ATKmultiplier*i)+SAmultiplier+(transPower*i))*1.9))})")
+                        elif superEffective:
+                            print(f"Transformed ({int(transPower*100)}%) Super Attack APT ({str(i)} Stack): {str(int(ATK*((ATKmultiplier*i)+SAmultiplier+(transPower*i))))} (Super Effective: {str(int(ATK*((ATKmultiplier*i)+SAmultiplier+(transPower*i))*1.5))})")
+                        else:
+                            print(f"Transformed ({int(transPower*100)}%) Super Attack APT ({str(i)} Stack): {str(int(ATK*((ATKmultiplier*i)+SAmultiplier+(transPower*i))))}")
+                else:
+                    for i in range(1, turnLimit):
+                        if crit:
+                            print(f"Transformed ({int(transPower*100)}%) Super Attack APT ({str(i)} Stack): {str(int(ATK*((ATKmultiplier*i)+SAmultiplier+transPower)))} (Crit: {str(int(ATK*((ATKmultiplier*i)+SAmultiplier+transPower)*1.9))})")
+                        elif superEffective:
+                            print(f"Transformed ({int(transPower*100)}%) Super Attack APT ({str(i)} Stack): {str(int(ATK*((ATKmultiplier*i)+SAmultiplier+transPower)))} (Super Effective: {str(int(ATK*((ATKmultiplier*i)+SAmultiplier+transPower)*1.5))})")
+                        else:
+                            print(f"Transformed ({int(transPower*100)}%) Super Attack APT ({str(i)} Stack): {str(int(ATK*((ATKmultiplier*i)+SAmultiplier+transPower)))}")
+                for i in range(1, turnLimit):
+                    if crit:
+                        print(f"Normal Super Attack APT ({str(i)} Stack): {str(int(ATK*((ATKmultiplier*i)+SAmultiplier)))} (Crit: {str(int(ATK*((ATKmultiplier*i)+SAmultiplier)*1.9))})")
+                    elif superEffective:
+                        print(f"Normal Super Attack APT ({str(i)} Stack): {str(int(ATK*((ATKmultiplier*i)+SAmultiplier)))} (Super Effective: {str(int(ATK*((ATKmultiplier*i)+SAmultiplier)*1.5))})")
+                    else:
+                        print(f"Normal Super Attack APT ({str(i)} Stack): {str(int(ATK*((ATKmultiplier*i)+SAmultiplier)))}")
+            else:
+                if crit:
+                    print(f"Transformed (20%) Super Attack APT: {str(int(ATK*(ATKmultiplier+SAmultiplier+.2)))} (Crit: {str(int(ATK*(ATKmultiplier+SAmultiplier+.2)*1.9))})")
+                    print(f"Normal Super Attack APT: {str(int(ATK*(ATKmultiplier+SAmultiplier)))} (Crit: {str(int(ATK*(ATKmultiplier+SAmultiplier)*1.9))})")
+                elif superEffective:
+                    print(f"Transformed (20%) Super Attack APT: {str(int(ATK*(ATKmultiplier+SAmultiplier+.2)))} (Super Effective: {str(int(ATK*(ATKmultiplier+SAmultiplier+.62)*1.5))})")
+                    print(f"Normal Super Attack APT: {str(int(ATK*(ATKmultiplier+SAmultiplier)))} (Super Effective: {str(int(ATK*(ATKmultiplier+SAmultiplier)*1.5))})")
+                else:
+                    print(f"Transformed (20%) Super Attack APT: {str(int(ATK*(ATKmultiplier+SAmultiplier+.2)))}")
+                    print(f"Normal Super Attack APT: {str(int(ATK*(ATKmultiplier+SAmultiplier)))}")
+        elif (SAEffect.__contains__("% chance of Super Attack transforming and ")):
+            transPower = .2
+            if SAEffect.__contains__('transforming and raises ATK '):
+                ATKmultiplier = int(SAEffect[SAEffect.find(' by ')+4:SAEffect.find('% for')])/100
+            elif SAEffect.__contains__('transforming for greater power'):
+                transPower = .6
+            elif SAEffect.__contains__('Power will be supremely boosted for '):
+                transPower = .9
+                turnLimit = SAEffect.split('boosted for ')[1]
+                turnLimit = int(turnLimit.split(' turns')[0])
                 stack = True
             
             if turnLimit < 2:
@@ -1208,6 +1384,10 @@ def calcATKSA(ki, SAName, SAEffect, ATK, onAttackATK, saPerBuff, saFlatBuff, cou
                         print(f"Transformed ({int(transPower*100)}%) Super Attack APT ({str(i)} Stack): {str(int(ATK*((ATKmultiplier*i)+SAmultiplier+transPower)))} (Super Effective: {str(int(ATK*((ATKmultiplier*i)+SAmultiplier+transPower)*1.5))})")
                     else:
                         print(f"Transformed ({int(transPower*100)}%) Super Attack APT ({str(i)} Stack): {str(int(ATK*((ATKmultiplier*i)+SAmultiplier+transPower)))}")
+                
+                if SAEffect.__contains__('transforming and raises ATK '):
+                    ATKmultiplier = 0
+                
                 for i in range(1, turnLimit):
                     if crit:
                         print(f"Normal Super Attack APT ({str(i)} Stack): {str(int(ATK*(ATKmultiplier+SAmultiplier)))} (Crit: {str(int(ATK*(ATKmultiplier+SAmultiplier)*1.9))})")
@@ -1225,7 +1405,7 @@ def calcATKSA(ki, SAName, SAEffect, ATK, onAttackATK, saPerBuff, saFlatBuff, cou
                 else:
                     print(f"Transformed (20%) Super Attack APT: {str(int(ATK*(ATKmultiplier+SAmultiplier+.2)))}")
                     print(f"Normal Super Attack APT: {str(int(ATK*(ATKmultiplier+SAmultiplier)))}")
-        elif stack or not additional == 0:
+        elif stack:
             if SAEffect.__contains__('chance of raising ATK'):
                 if crit:
                     print("Super Attack APT (Without RNG chance): " + str(int(ATK*(SAmultiplier))) 
@@ -1238,21 +1418,83 @@ def calcATKSA(ki, SAName, SAEffect, ATK, onAttackATK, saPerBuff, saFlatBuff, cou
             
             # Dev Note: Fix turn limit for stacks (3 turns + UR + no passive additionals
             # only printing 3 stacks, should print 4)
+            # Dev Note: Fix stacking for units with multiple SAs, and if some of those SAs stack
+            # (STR Perfect Cell, LRs, etc.)
             if turnLimit < 2:
                 turnLimit = additional
                 if rank == "SSR" or rank == "UR" or rank == "LR":
                     turnLimit = 2 + additional
             else:
                 turnLimit = (math.ceil(turnLimit/2))*(additional+1)
+            
+            ATKmultiplier2 = ATKmultiplier
+            mainStack = 0
+            baseATKmultiplier2 = baseATKmultiplier
+            baseStack = 0
             for i in range(1, turnLimit):
-                
+                if not baseKiValue == ki:
+                    if i > 1 and math.ceil(((turnLimit - i) / (additional + 1)) % additional) == 0:
+                        baseATKmultiplier2 += baseATKmultiplier
+                        stackATK = int(baseATK*(baseATKmultiplier2+ATKmultiplier2+baseSAmultiplier))
+                        baseStack += 1
+                        
+                        if crit:
+                            print(f"Super Attack APT ({str(baseStack)} Stack, at {baseKiValue} Ki): {str(stackATK)} (Crit: {str(int(stackATK*1.9))})")
+                        elif superEffective:
+                            print(f"Super Attack APT ({str(baseStack)} Stack, at {baseKiValue} Ki): {str(stackATK)} (Super Effective: {str(int(stackATK*1.5))})")
+                        else:
+                            print(f"Super Attack APT ({str(baseStack)} Stack, at {baseKiValue} Ki): {str(stackATK)}")
+                    else:
+                        if mainStack != 0:
+                            ATKmultiplier2 += ATKmultiplier
+                        stackATK = int(baseATK*(baseATKmultiplier2+ATKmultiplier2+baseSAmultiplier))
+                        mainStack += 1
+                        
+                        if crit:
+                            print(f"Super Attack APT ({str(mainStack)} Stack, at {ki} Ki): {str(stackATK)} (Crit: {str(int(stackATK*1.9))})")
+                        elif superEffective:
+                            print(f"Super Attack APT ({str(mainStack)} Stack, at {ki} Ki): {str(stackATK)} (Super Effective: {str(int(stackATK*1.5))})")
+                        else:
+                            print(f"Super Attack APT ({str(mainStack)} Stack, at {ki} Ki): {str(stackATK)}")
+                else:
+                    ATKmultiplier2 += ATKmultiplier
+                    stackATK = int(ATK*(ATKmultiplier2+SAmultiplier))
+                    mainStack += 1
+                    
+                    if crit:
+                        print("Super Attack APT (" + str(mainStack) + " Stack): " + str(stackATK) 
+                        + " (Crit: " + str(int(stackATK*1.9)) + ")")
+                    elif superEffective:
+                        print("Super Attack APT (" + str(mainStack) + " Stack): " + str(stackATK) 
+                        + " (Super Effective: " + str(int(stackATK*1.5)) + ")")
+                    else:
+                        print("Super Attack APT (" + str(mainStack) + " Stack): " + str(stackATK))
+        elif additional != 0:            
+            if SAEffect.__contains__('chance of raising ATK'):
+                if crit:
+                    print("Super Attack APT (Without RNG chance): " + str(int(ATK*(SAmultiplier))) 
+                        + " (Crit: " + str(int(int(ATK*(ATKmultiplier+SAmultiplier)))*1.9) + ")")
+                elif superEffective:
+                    print("Super Attack APT (Without RNG chance): " + str(int(ATK*(SAmultiplier))) 
+                    + " (Super Effective: " + str(int(int(ATK*(ATKmultiplier+SAmultiplier)))*1.5) + ")")
+                else:
+                    print("Super Attack APT (Without RNG chance): " + str(int(ATK*(SAmultiplier))))
+            
+            if turnLimit < 2:
+                turnLimit = additional
+                if rank == "SSR" or rank == "UR" or rank == "LR":
+                    turnLimit = 2 + additional
+            else:
+                turnLimit = (math.ceil(turnLimit/2))*(additional+1)
+            
+            for i in range(1, turnLimit):
                 if not baseKiValue == ki and i > 1:
                     stackATK = int(baseATK*((baseATKmultiplier*i)+ATKmultiplier+baseSAmultiplier))
                     
                     if crit:
-                        print(f"Super Attack APT ({str(i)} Stack, at {baseKiValue} Ki): {str(stackATK)}  (Crit: {str(int(stackATK*1.9))})")
+                        print(f"Super Attack APT ({str(i)} Stack, at {baseKiValue} Ki): {str(stackATK)} (Crit: {str(int(stackATK*1.9))})")
                     elif superEffective:
-                        print(f"Super Attack APT ({str(i)} Stack, at {baseKiValue} Ki): {str(stackATK)}  (Super Effective: {str(int(stackATK*1.5))})")
+                        print(f"Super Attack APT ({str(i)} Stack, at {baseKiValue} Ki): {str(stackATK)} (Super Effective: {str(int(stackATK*1.5))})")
                     else:
                         print(f"Super Attack APT ({str(i)} Stack, at {baseKiValue} Ki): {str(stackATK)}")
                 else:
@@ -1296,7 +1538,7 @@ def calcATKSA(ki, SAName, SAEffect, ATK, onAttackATK, saPerBuff, saFlatBuff, cou
                for i in range(1, turnLimit):
                   print(f"Counter APT (After SA {i}, With {counterPower*100}% Multiplier): {str(int(ATK*(counterPower+(ATKmultiplier*i))))}")   
         
-        if active and active[1].__contains__('damage to enemy'):
+        if active and active[1].__contains__('damage to '):
             if type(activeATK) != int:
                 if type(activeATK[0]) == list:
                     activeATK[0] = activeATK[0][0]
@@ -1304,6 +1546,10 @@ def calcATKSA(ki, SAName, SAEffect, ATK, onAttackATK, saPerBuff, saFlatBuff, cou
             activeMultiplier = 550
             if active[1].__contains__('mega-colossal damage'):
                 activeMultiplier = 440
+            elif (active[1].__contains__('aises ATK by ') and
+            active[1].__contains__('% temporarily then causes damage to enemy')):
+                mult = active[1].split('aises ATK by ')[1]
+                activeMultiplier = int(mult.split('% temp')[0])
                 
             if active[1].__contains__('assively raises ATK temporarily'):
                 activeMultiplier += 100
@@ -1312,12 +1558,12 @@ def calcATKSA(ki, SAName, SAEffect, ATK, onAttackATK, saPerBuff, saFlatBuff, cou
             elif (active[1].__contains__('raises ATK by ') or
             active[1].__contains__("raises allies' ATK by ")):
                 activeMultiplier += int((active[1].split('by ')[1]).split('%')[0])
-            elif active[1].__contains__('raises ATK temporarily'):
+            elif active[1].__contains__('aises ATK temporarily'):
                 activeMultiplier += 30
             
             if type(activeATK) != int:
                 activeATK = int(int(activeATK[0] * (1 + (int(activeATK[1]/100)))) + activeATK[2])
-            if turnLimit > 1:
+            if turnLimit > 1 and stack:
                 for i in range (1, turnLimit):
                     stackATK = int(activeATK*((ATKmultiplier*i)+(activeMultiplier/100)))
                     if crit:
@@ -1337,7 +1583,7 @@ def calcATKSA(ki, SAName, SAEffect, ATK, onAttackATK, saPerBuff, saFlatBuff, cou
             
         print()
 
-def calcATKCond(characterKit, condSoTATK, atkPerBuff, atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK):
+def calcATKCond(characterKit, condSoTATK, atkPerBuff, atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil):
     copyCond = copy.copy(condSoTATK)
     
     if (condSoTATK.head != None):
@@ -1379,179 +1625,201 @@ def calcATKCond(characterKit, condSoTATK, atkPerBuff, atkFlatBuff, linkBuffs, on
             cond1 = cond1.replace('When there is ', 'When there is not ')
             cond1 = cond1.replace('in the same turn are ', 'in the same turn are not ')
             cond1 = cond1.replace(' Ki Spheres obtained', ' Ki Spheres not obtained')
+            cond1 = cond1.replace('When HP is', 'When HP is not')
             print(f"ATK {cond1}):")
-            calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+            calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
             
             cond1 = cond1.replace('When there is not ', 'When there is ')
             cond1 = cond1.replace('in the same turn are not', 'in the same turn are')
             cond1 = cond1.replace(' Ki Spheres not obtained', ' Ki Spheres obtained')
+            cond1 = cond1.replace('When HP is not', 'When HP is')
             if flat:
                 if "limit" in locals():
                     print(f"ATK {cond1}, with {int(limit/int(buff))} (Max) Ki Spheres Obtained):")
-                    calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (int(limit) * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                    calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (int(limit) * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                 else:
                     print(f"ATK {cond1}, with 3 Ki Spheres Obtained):")
-                    calcATKCond(characterKit, copyCond, atkPerBuff + (3 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                    calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (3 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                     print(f"ATK {cond1}, with 7.5 (AVG) Ki Spheres obtained):")
-                    calcATKCond(characterKit, copyCond, atkPerBuff + (7.5 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                    calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (7.5 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                     print(f"ATK {cond1}, with 23 (Max) Ki Spheres obtained):")
-                    calcATKCond(characterKit, copyCond, atkPerBuff + (23 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                    calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (23 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
             else:
                 if "limit" in locals():
                     print(f"ATK {cond1}, with {int(limit/int(buff))} (Max) Ki Spheres Obtained):")
-                    calcATKCond(characterKit, copyCond, atkPerBuff + (int(limit)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                    calcATKCond(characterKit, copyCond, atkPerBuff + (int(limit)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                 else:
                     print(f"ATK {cond1}, with 3 Ki Spheres Obtained):")
-                    calcATKCond(characterKit, copyCond, atkPerBuff + (3 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                    calcATKCond(characterKit, copyCond, atkPerBuff + (3 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                     print(f"ATK {cond1}, with 7.5 (AVG) Ki Spheres obtained):")
-                    calcATKCond(characterKit, copyCond, atkPerBuff + (7.5 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                    calcATKCond(characterKit, copyCond, atkPerBuff + (7.5 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                     print(f"ATK {cond1}, with 23 (Max) Ki Spheres obtained):")
-                    calcATKCond(characterKit, copyCond, atkPerBuff + (23 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                    calcATKCond(characterKit, copyCond, atkPerBuff + (23 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
         elif condition.__contains__("For every Ki Sphere obtained, per "):
             category = condition.split(', per ')[1].replace(' (self excluded))', '')
             for i in range(0, 3):
                 if flat:
                     print(f"ATK (With {i} {category}, 3 Ki Spheres Obtained):")
-                    calcATKCond(characterKit, copyCond, atkPerBuff + (3 * int(buff) * i), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                    calcATKCond(characterKit, copyCond, atkPerBuff + (3 * int(buff) * i), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                     print(f"ATK (With {i} {category}, 7.5 (AVG) Ki Spheres obtained):")
-                    calcATKCond(characterKit, copyCond, atkPerBuff + (7.5 * int(buff) * i), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                    calcATKCond(characterKit, copyCond, atkPerBuff + (7.5 * int(buff) * i), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                     print(f"ATK (With {i} {category}, 23 (Max) Ki Spheres obtained):")
-                    calcATKCond(characterKit, copyCond, atkPerBuff + (23 * int(buff) * i), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                    calcATKCond(characterKit, copyCond, atkPerBuff + (23 * int(buff) * i), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                 else:
                     print(f"ATK (With {i} {category}, 3 Ki Spheres Obtained):")
-                    calcATKCond(characterKit, copyCond, atkPerBuff + (3 * int(buff) * i), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                    calcATKCond(characterKit, copyCond, atkPerBuff + (3 * int(buff) * i), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                     print(f"ATK (With {i} {category}, 7.5 (AVG) Ki Spheres obtained):")
-                    calcATKCond(characterKit, copyCond, atkPerBuff + (7.5 * int(buff) * i), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                    calcATKCond(characterKit, copyCond, atkPerBuff + (7.5 * int(buff) * i), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                     print(f"ATK (With {i} {category}, 23 (Max) Ki Spheres obtained):")
-                    calcATKCond(characterKit, copyCond, atkPerBuff + (23 * int(buff) * i), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                    calcATKCond(characterKit, copyCond, atkPerBuff + (23 * int(buff) * i), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
         elif condition.__contains__("For every Ki Sphere obtained with "):
             kiStart = condition.split('obtained with ')[1]
             kiStart = int(kiStart.split(' or ')[0])
             print(f"ATK (With less than {kiStart} Ki Spheres Obtained):")
-            calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+            calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
             if flat:
                 if "limit" in locals():
                     if int(limit/int(buff)) > 3:
                         print(f"ATK (With 3 Ki Spheres Obtained):")
-                        calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (3 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                        calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (3 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                     if int(limit/int(buff)) >= 7.5:
                         print(f"ATK (With 7.5 (AVG) Ki Spheres Obtained):")
-                        calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (7.5 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                        calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (7.5 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                     if int(limit/int(buff)) >= 23:
                         print(f"ATK (With 23 (Max) Ki Spheres Obtained):")
-                        calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (23 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                        calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (23 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                     print(f"ATK (With {kiStart + int(limit/int(buff))} (Max) Ki Spheres Obtained):")
-                    calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + int(limit), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                    calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + int(limit), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                 else:
                     print(f"ATK (With {3 + kiStart} Ki Spheres Obtained):")
-                    calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (3 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                    calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (3 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                     print(f"ATK (With {7.5 + kiStart} (AVG) Ki Spheres obtained):")
-                    calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (7.5 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                    calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (7.5 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                     print(f"ATK (With {23 - kiStart} (Max) Ki Spheres obtained):")
-                    calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + ((23 - kiStart) * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                    calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + ((23 - kiStart) * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
             else:
                 if "limit" in locals():
                     if int(limit/int(buff)) > 3:
                         print(f"ATK (With 3 Ki Spheres Obtained):")
-                        calcATKCond(characterKit, copyCond, atkPerBuff + (3 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                        calcATKCond(characterKit, copyCond, atkPerBuff + (3 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                     if int(limit/int(buff)) >= 7.5:
                         print(f"ATK (With 7.5 (AVG) Ki Spheres Obtained):")
-                        calcATKCond(characterKit, copyCond, atkPerBuff + (7.5 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                        calcATKCond(characterKit, copyCond, atkPerBuff + (7.5 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                     if int(limit/int(buff)) >= 23:
                         print(f"ATK (With 23 (Max) Ki Spheres Obtained):")
-                        calcATKCond(characterKit, copyCond, atkPerBuff + (23 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                        calcATKCond(characterKit, copyCond, atkPerBuff + (23 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                     print(f"ATK (With {kiStart + int(limit/int(buff))} (Max) Ki Spheres Obtained):")
-                    calcATKCond(characterKit, copyCond, atkPerBuff + int(limit), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                    calcATKCond(characterKit, copyCond, atkPerBuff + int(limit), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                 else:
                     print(f"ATK (With 3 Ki Spheres Obtained):")
-                    calcATKCond(characterKit, copyCond, atkPerBuff + (3 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                    calcATKCond(characterKit, copyCond, atkPerBuff + (3 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                     print(f"ATK (With 7.5 (AVG) Ki Spheres obtained):")
-                    calcATKCond(characterKit, copyCond, atkPerBuff + (7.5 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                    calcATKCond(characterKit, copyCond, atkPerBuff + (7.5 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                     print(f"ATK (With 23 (Max) Ki Spheres obtained):")
-                    calcATKCond(characterKit, copyCond, atkPerBuff + (23 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                    calcATKCond(characterKit, copyCond, atkPerBuff + (23 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
         elif condition.__contains__("For every Ki Sphere obtained"):
             cond2 = ''
             if condition.__contains__('when there is'):
                 cond2 = 'When there is not' + (condition.split('when there is')[1])[:-1]
                 print(f"ATK ({cond2}):")
-                calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                 cond2 = cond2.replace('When there is not', ', when there is')
             
             if flat:
                 if "limit" in locals():
                     if int(limit/int(buff)) > 3:
                         print(f"ATK (With 3 Ki Spheres Obtained):")
-                        calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (3 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                        calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (3 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                     if int(limit/int(buff)) >= 7.5:
                         print(f"ATK (With 7.5 (AVG) Ki Spheres Obtained):")
-                        calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (7.5 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                        calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (7.5 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                     if int(limit/int(buff)) >= 23:
                         print(f"ATK (With 23 (Max) Ki Spheres Obtained):")
-                        calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (23 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                        calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (23 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                     print(f"ATK (With {int(limit/int(buff))} (Max) Ki Spheres Obtained):")
-                    calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + int(limit), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                    calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + int(limit), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                 else:
                     print(f"ATK (With 3 Ki Spheres Obtained):")
-                    calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (3 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                    calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (3 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                     print(f"ATK (With 7.5 (AVG) Ki Spheres obtained):")
-                    calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (7.5 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                    calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (7.5 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                     print(f"ATK (With 23 (Max) Ki Spheres obtained):")
-                    calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (23 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                    calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (23 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
             else:
                 if "limit" in locals():
                     if int(limit/int(buff)) > 3:
                         print(f"ATK (With 3 Ki Spheres Obtained):")
-                        calcATKCond(characterKit, copyCond, atkPerBuff + (3 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                        calcATKCond(characterKit, copyCond, atkPerBuff + (3 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                     if int(limit/int(buff)) >= 7.5:
                         print(f"ATK (With 7.5 (AVG) Ki Spheres Obtained):")
-                        calcATKCond(characterKit, copyCond, atkPerBuff + (7.5 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                        calcATKCond(characterKit, copyCond, atkPerBuff + (7.5 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                     if int(limit/int(buff)) >= 23:
                         print(f"ATK (With 23 (Max) Ki Spheres Obtained):")
-                        calcATKCond(characterKit, copyCond, atkPerBuff + (23 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                        calcATKCond(characterKit, copyCond, atkPerBuff + (23 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                     print(f"ATK (With {int(limit/int(buff))} (Max) Ki Spheres Obtained):")
-                    calcATKCond(characterKit, copyCond, atkPerBuff + int(limit), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                    calcATKCond(characterKit, copyCond, atkPerBuff + int(limit), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                 else:
                     print(f"ATK (With 3 Ki Spheres Obtained):")
-                    calcATKCond(characterKit, copyCond, atkPerBuff + (3 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                    calcATKCond(characterKit, copyCond, atkPerBuff + (3 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                     print(f"ATK (With 7.5 (AVG) Ki Spheres obtained):")
-                    calcATKCond(characterKit, copyCond, atkPerBuff + (7.5 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                    calcATKCond(characterKit, copyCond, atkPerBuff + (7.5 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                     print(f"ATK (With 23 (Max) Ki Spheres obtained):")
-                    calcATKCond(characterKit, copyCond, atkPerBuff + (23 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                    calcATKCond(characterKit, copyCond, atkPerBuff + (23 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
         elif condition.__contains__("For every Rainbow Ki Sphere obtained"):
+            print("ATK (With 0 Rainbow Ki Spheres obtained):")
+            calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
             if flat:
-                print("ATK (With 0 Rainbow Ki Spheres obtained):")
-                calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
-                print("ATK (With 2.5 (AVG) Rainbow Ki Spheres obtained):")
-                calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (2.5 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
-                print("ATK (With 5 (Max) Rainbow Ki Spheres obtained):")
-                calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (5 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK) 
+                if "limit" in locals():
+                    if int(limit/int(buff)) >= 2.5:
+                        print(f"ATK (With 2.5 (AVG) Ki Spheres Obtained):")
+                        calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (2.5 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
+                    if int(limit/int(buff)) >= 5:
+                        print(f"ATK (With 5 (Max) Ki Spheres Obtained):")
+                        calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (5 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
+                    print(f"ATK (With {int(limit/int(buff))} (Max) Ki Spheres Obtained):")
+                    calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + int(limit), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
+                else:
+                    print("ATK (With 2.5 (AVG) Rainbow Ki Spheres obtained):")
+                    calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (2.5 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
+                    print("ATK (With 5 (Max) Rainbow Ki Spheres obtained):")
+                    calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (5 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil) 
             else:
-                print("ATK (With 0 Rainbow Ki Spheres obtained):")
-                calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
-                print("ATK (With 2.5 (AVG) Rainbow Ki Spheres obtained):")
-                calcATKCond(characterKit, copyCond, atkPerBuff + (2.5 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
-                print("ATK (With 5 (Max) Rainbow Ki Spheres obtained):")
-                calcATKCond(characterKit, copyCond, atkPerBuff + (5 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                if "limit" in locals():
+                    if int(limit/int(buff)) >= 2.5:
+                        print(f"ATK (With 2.5 (AVG) Ki Spheres Obtained):")
+                        calcATKCond(characterKit, copyCond, atkPerBuff + (2.5 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
+                    if int(limit/int(buff)) >= 5:
+                        print(f"ATK (With 5 (Max) Ki Spheres Obtained):")
+                        calcATKCond(characterKit, copyCond, atkPerBuff + (5 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
+                    print(f"ATK (With {int(limit/int(buff))} (Max) Ki Spheres Obtained):")
+                    calcATKCond(characterKit, copyCond, atkPerBuff + int(limit), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
+                else:
+                    print("ATK (With 0 Rainbow Ki Spheres obtained):")
+                    calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
+                    print("ATK (With 2.5 (AVG) Rainbow Ki Spheres obtained):")
+                    calcATKCond(characterKit, copyCond, atkPerBuff + (2.5 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
+                    print("ATK (With 5 (Max) Rainbow Ki Spheres obtained):")
+                    calcATKCond(characterKit, copyCond, atkPerBuff + (5 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
         elif condition.__contains__("For every ") and condition.__contains__(" Ki Sphere obtained"):
             kiType = (condition.split('For every ')[1]).split(' Ki Sphere')[0]
             if flat:
                 print(f"ATK (With 0 {kiType} Ki Spheres Obtained):")
-                calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                 print(f"ATK (With 3 {kiType} Ki Spheres Obtained):")
-                calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (3 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (3 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                 print(f"ATK (With 7.5 (AVG) {kiType} Ki Spheres Obtained):")
-                calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (7.5 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (7.5 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                 print(f"ATK (With 23 (Max) {kiType} Ki Spheres Obtained):")
-                calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (23 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (23 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
             else:
                 print(f"ATK (With 0 {kiType} Ki Spheres Obtained):")
-                calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                 print(f"ATK (With 3 {kiType} Ki Spheres Obtained):")
-                calcATKCond(characterKit, copyCond, atkPerBuff + (3 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                calcATKCond(characterKit, copyCond, atkPerBuff + (3 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                 print(f"ATK (With 7.5 (AVG) {kiType} Ki Spheres obtained):")
-                calcATKCond(characterKit, copyCond, atkPerBuff + (7.5 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                calcATKCond(characterKit, copyCond, atkPerBuff + (7.5 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                 print(f"ATK (With 23 (Max) {kiType} Ki Spheres obtained):")
-                calcATKCond(characterKit, copyCond, atkPerBuff + (23 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                calcATKCond(characterKit, copyCond, atkPerBuff + (23 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
         elif condition.__contains__(", per ") and condition.__contains__(" Ki Sphere obtained"):
             kiType = (condition.split('per ')[1]).split(' Ki Sphere')[0]
             condition = condition.split(', per')[0]
@@ -1559,61 +1827,61 @@ def calcATKCond(characterKit, condSoTATK, atkPerBuff, atkFlatBuff, linkBuffs, on
                 if "limit" in locals():
                     if int(limit/int(buff)) > 3:
                         print(f"ATK (With 3 Ki Spheres Obtained):")
-                        calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (3 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                        calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (3 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                     if int(limit/int(buff)) >= 7.5:
                         print(f"ATK (With 7.5 (AVG) Ki Spheres Obtained):")
-                        calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (7.5 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                        calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (7.5 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                     if int(limit/int(buff)) >= 23:
                         print(f"ATK (With 23 (Max) Ki Spheres Obtained):")
-                        calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (23 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                        calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (23 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                     print(f"ATK (With {int(limit/int(buff))} (Max) Ki Spheres Obtained):")
-                    calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + int(limit), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                    calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + int(limit), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                 else:
                     print(f"ATK (With {3 + kiStart} Ki Spheres Obtained):")
-                    calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (3 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                    calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (3 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                     print(f"ATK (With {7.5 + kiStart} (AVG) Ki Spheres obtained):")
-                    calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (7.5 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                    calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (7.5 * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                     print(f"ATK (With {23 - kiStart} (Max) Ki Spheres obtained):")
-                    calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + ((23 - kiStart) * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                    calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + ((23 - kiStart) * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
             else:
                 if "limit" in locals():
                     if int(limit/int(buff)) > 3:
                         print(f"ATK {condition}, with 3 Ki Spheres Obtained):")
-                        calcATKCond(characterKit, copyCond, atkPerBuff + (3 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                        calcATKCond(characterKit, copyCond, atkPerBuff + (3 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                     if int(limit/int(buff)) >= 7.5:
                         print(f"ATK {condition}, with 7.5 (AVG) Ki Spheres Obtained):")
-                        calcATKCond(characterKit, copyCond, atkPerBuff + (7.5 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                        calcATKCond(characterKit, copyCond, atkPerBuff + (7.5 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                     if int(limit/int(buff)) >= 23:
                         print(f"ATK {condition}, with 23 (Max) Ki Spheres Obtained):")
-                        calcATKCond(characterKit, copyCond, atkPerBuff + (23 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                        calcATKCond(characterKit, copyCond, atkPerBuff + (23 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                     print(f"ATK (With {int(limit/int(buff))} (Max) Ki Spheres Obtained):")
-                    calcATKCond(characterKit, copyCond, atkPerBuff + int(limit), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                    calcATKCond(characterKit, copyCond, atkPerBuff + int(limit), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                 else:
                     print(f"ATK (With 3 Ki Spheres Obtained):")
-                    calcATKCond(characterKit, copyCond, atkPerBuff + (3 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                    calcATKCond(characterKit, copyCond, atkPerBuff + (3 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                     print(f"ATK (With 7.5 (AVG) Ki Spheres obtained):")
-                    calcATKCond(characterKit, copyCond, atkPerBuff + (7.5 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                    calcATKCond(characterKit, copyCond, atkPerBuff + (7.5 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                     print(f"ATK (With 23 (Max) Ki Spheres obtained):")
-                    calcATKCond(characterKit, copyCond, atkPerBuff + (23 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
-        elif condition.__contains__("Starting from the ") and condition.__contains__(" turn from the "):
+                    calcATKCond(characterKit, copyCond, atkPerBuff + (23 * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
+        elif condition.__contains__("Starting from the ") and condition.__contains__(" turn "):
             turn = condition.split('Starting from the ')[1]
             print(f'ATK (Before the {turn}:')
-            calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+            calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
             
             print(f'ATK {condition}:')
             activeCondATK = [newPerBuff, newFlatBuff]
-            calcATKCond(characterKit, copyCond, newPerBuff, newFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+            calcATKCond(characterKit, copyCond, newPerBuff, newFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
         elif ((condition.__contains__("turn(s) from the character's entry turn") or
         condition.__contains__("turns from the character's entry turn")) and not
         condition.__contains__('On the ')):
             turn = (condition.split('For ')[1]).split(' turn')[0]
             activeCondATK = [newPerBuff, newFlatBuff]
             print(f"ATK {condition}:")
-            calcATKCond(characterKit, copyCond, newPerBuff, newFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+            calcATKCond(characterKit, copyCond, newPerBuff, newFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
             
             activeCondATK = [atkPerBuff, atkFlatBuff]
             print(f"ATK (After {turn} turn buff):")
-            calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+            calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
         elif (condition.__contains__(" per ") and condition.__contains__(" ally on the team")):
             category = condition.split(" per ")[1]
             category = category.split(" ally")[0]
@@ -1628,10 +1896,10 @@ def calcATKCond(characterKit, condSoTATK, atkPerBuff, atkFlatBuff, linkBuffs, on
                     print(f'ATK (With {str(i)} {category} allies on the team):')
                 if flat:
                     activeCondATK = [atkPerBuff, atkFlatBuff + (i * int(buff))]
-                    calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (i * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                    calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (i * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                 else:
                     activeCondATK = [atkPerBuff + (i * int(buff)), atkFlatBuff]
-                    calcATKCond(characterKit, copyCond, atkPerBuff + (i * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                    calcATKCond(characterKit, copyCond, atkPerBuff + (i * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
         elif condition.__contains__("Per ") and condition.__contains__(" ally on the team"):
             category = condition.split("Per ")[1]
             category = category.split(" ally")[0]
@@ -1649,10 +1917,10 @@ def calcATKCond(characterKit, condSoTATK, atkPerBuff, atkFlatBuff, linkBuffs, on
                         print(f'ATK (With {str(i)} {category} allies on the team):')
                     if flat:
                         activeCondATK = [atkPerBuff, atkFlatBuff + (i * int(buff))]
-                        calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (i * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                        calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (i * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                     else:
                         activeCondATK = [atkPerBuff + (i * int(buff)), atkFlatBuff]
-                        calcATKCond(characterKit, copyCond, atkPerBuff + (i * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                        calcATKCond(characterKit, copyCond, atkPerBuff + (i * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
             else:
                 for i in range(1, limitLoop):
                     if i == 1:
@@ -1661,10 +1929,10 @@ def calcATKCond(characterKit, condSoTATK, atkPerBuff, atkFlatBuff, linkBuffs, on
                         print(f'ATK (With {str(i)} {category} allies on the team):')
                     if flat:
                         activeCondATK = [atkPerBuff, atkFlatBuff + (i * int(buff))]
-                        calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (i * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                        calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (i * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                     else:
                         activeCondATK = [atkPerBuff + (i * int(buff)), atkFlatBuff]
-                        calcATKCond(characterKit, copyCond, atkPerBuff + (i * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                        calcATKCond(characterKit, copyCond, atkPerBuff + (i * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
         elif (condition.__contains__("Per ") and condition.__contains__(" Category ally attacking in the same turn")):
             category = condition.split("Per ")[1]
             category = category.split(" Category")[0]
@@ -1685,10 +1953,10 @@ def calcATKCond(characterKit, condSoTATK, atkPerBuff, atkFlatBuff, linkBuffs, on
                         print("ATK (With another " + str(i) + " " + category + " Category allies attacking in the same turn):")
                     if flat:
                         activeCondATK = [atkPerBuff, atkFlatBuff + (i * int(buff))]
-                        calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (i * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                        calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (i * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                     else:
                         activeCondATK = [atkPerBuff + (i * int(buff)), atkFlatBuff]
-                        calcATKCond(characterKit, copyCond, atkPerBuff + (i * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                        calcATKCond(characterKit, copyCond, atkPerBuff + (i * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
             else:
                 for i in range(1, 4):
                     if i == 0:
@@ -1699,14 +1967,14 @@ def calcATKCond(characterKit, condSoTATK, atkPerBuff, atkFlatBuff, linkBuffs, on
                         print("ATK (With " + str(i) + " " + category + " Category allies attacking in the same turn):")
                     if flat:
                         activeCondATK = [atkPerBuff, atkFlatBuff + (i * int(buff))]
-                        calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (i * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                        calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (i * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                     else:
                         activeCondATK = [atkPerBuff + (i * int(buff)), atkFlatBuff]
-                        calcATKCond(characterKit, copyCond, atkPerBuff + (i * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                        calcATKCond(characterKit, copyCond, atkPerBuff + (i * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
         elif (condition.__contains__("If the character's Ki is ")):
             activeCondATK = [newPerBuff, newFlatBuff]
             print(f"ATK {condition}:")
-            calcATKCond(characterKit, copyCond, newPerBuff, newFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)        
+            calcATKCond(characterKit, copyCond, newPerBuff, newFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)        
         elif (condition.__contains__("er existing enemy")):
             
             startLoop = 1
@@ -1715,7 +1983,7 @@ def calcATKCond(characterKit, condSoTATK, atkPerBuff, atkFlatBuff, linkBuffs, on
                 startLoop = condition.split('starting from the ')[1]
                 startLoop = int((startLoop.split(' enemy')[0])[:-2])
                 print(f'ATK (When facing less than {str(startLoop)} enemies):')
-                calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)    
+                calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)    
             
                 for i in range(startLoop, limitLoop):
                     if i == 1:
@@ -1725,10 +1993,10 @@ def calcATKCond(characterKit, condSoTATK, atkPerBuff, atkFlatBuff, linkBuffs, on
                         
                     if flat:
                         activeCondATK = [atkPerBuff, atkFlatBuff + ((i-1)*int(buff))]
-                        calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + ((i-1)*int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                        calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + ((i-1)*int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                     else:
                         activeCondATK = [atkPerBuff + ((i-1)*int(buff)), atkFlatBuff]
-                        calcATKCond(characterKit, copyCond, atkPerBuff + ((i-1)*int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                        calcATKCond(characterKit, copyCond, atkPerBuff + ((i-1)*int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
             else:
                 if "limit" in locals():
                     limitLoop = int(limit/buff)+1
@@ -1740,10 +2008,10 @@ def calcATKCond(characterKit, condSoTATK, atkPerBuff, atkFlatBuff, linkBuffs, on
                         
                     if flat:
                         activeCondATK = [atkPerBuff, atkFlatBuff + (i*int(buff))]
-                        calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (i*int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                        calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (i*int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                     else:
                         activeCondATK = [atkPerBuff + (i*int(buff)), atkFlatBuff]
-                        calcATKCond(characterKit, copyCond, atkPerBuff + (i*int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                        calcATKCond(characterKit, copyCond, atkPerBuff + (i*int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
         elif (condition.__contains__("At the start of each turn")):
             limitLoop = 8
             if "limit" in locals():
@@ -1751,17 +2019,17 @@ def calcATKCond(characterKit, condSoTATK, atkPerBuff, atkFlatBuff, linkBuffs, on
             for i in range(1, limitLoop):
                 activeCondATK = [atkPerBuff + (i*int(buff)), atkFlatBuff]
                 print(f'ATK (Turn {str(i)}):')
-                calcATKCond(characterKit, copyCond, atkPerBuff + (i * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                calcATKCond(characterKit, copyCond, atkPerBuff + (i * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
             if "limit" in locals():
                 if limit % int(buff) != 0:
                     activeCondATK = [atkPerBuff + limit, atkFlatBuff]
                     print(f'ATK (Turn {str(i+1)}):')
-                    calcATKCond(characterKit, copyCond, atkPerBuff + limit, atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                    calcATKCond(characterKit, copyCond, atkPerBuff + limit, atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
         elif (condition.__contains__("at the start of each turn")):
             # Test with TEQ HEP SSJ Vegeta, AGL WT Kid Gohan            
             condition = condition.replace('When HP is ', 'When HP is not ')
             print(f'ATK {condition.split(", ")[0]})')
-            calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+            calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                 
             condition = condition.replace('When HP is not', 'When HP is')
             condition = condition.replace(f", (up to {limit}%) at the start of each turn)", "")
@@ -1772,10 +2040,10 @@ def calcATKCond(characterKit, condSoTATK, atkPerBuff, atkFlatBuff, linkBuffs, on
                 print(f'ATK {condition}, turn {str(i)}):')
                 if flat:
                     activeCondATK = [atkPerBuff, atkFlatBuff + (i * int(buff))]
-                    calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (i * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                    calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff + (i * int(buff)), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                 else:
                     activeCondATK = [atkPerBuff + (i * int(buff)), atkFlatBuff]
-                    calcATKCond(characterKit, copyCond, atkPerBuff + (i * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                    calcATKCond(characterKit, copyCond, atkPerBuff + (i * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
         elif (condition.__contains__("For every turn passed")):
             limitLoop = 8
             if "limit" in locals():
@@ -1784,34 +2052,34 @@ def calcATKCond(characterKit, condSoTATK, atkPerBuff, atkFlatBuff, linkBuffs, on
             for i in range(0, limitLoop):
                 activeCondATK = [atkPerBuff + (i * int(buff)), atkFlatBuff]
                 print(f'ATK ({str(i)} turns passed):')
-                calcATKCond(characterKit, copyCond, atkPerBuff + (i * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                calcATKCond(characterKit, copyCond, atkPerBuff + (i * int(buff)), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
         elif condition.__contains__("The more HP remaining"):
             for i in range(0, 101):
                 if i % 10 == 0:
                     print("ATK at " + str(i) + "% HP:")
                     if flat:
                         activeCondATK = [atkPerBuff, int(atkFlatBuff + (int(buff)*(i/100)))]
-                        calcATKCond(characterKit, copyCond, atkPerBuff, int(atkFlatBuff + (int(buff)*(i/100))), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                        calcATKCond(characterKit, copyCond, atkPerBuff, int(atkFlatBuff + (int(buff)*(i/100))), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                     else:
                         activeCondATK = [int(atkPerBuff + (int(buff)*(i/100))), atkFlatBuff]
-                        calcATKCond(characterKit, copyCond, int(atkPerBuff + (int(buff)*(i/100))), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                        calcATKCond(characterKit, copyCond, int(atkPerBuff + (int(buff)*(i/100))), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
         elif condition.__contains__("The less HP remaining"):
             for i in range(0, 101):
                 if i % 10 == 0:
                     print("ATK at " + str(i) + "% HP:")
                     if flat:
                         activeCondATK = [atkPerBuff, int(atkFlatBuff + (int(buff) - (int(buff)*(i/100))))]
-                        calcATKCond(characterKit, copyCond, atkPerBuff, int(atkFlatBuff + (int(buff) - (int(buff)*(i/100)))), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                        calcATKCond(characterKit, copyCond, atkPerBuff, int(atkFlatBuff + (int(buff) - (int(buff)*(i/100)))), linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                     else:
                         activeCondATK = [int(atkPerBuff + (int(buff) - (int(buff)*(i/100)))), atkFlatBuff]
-                        calcATKCond(characterKit, copyCond, int(atkPerBuff + (int(buff) - (int(buff)*(i/100)))), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                        calcATKCond(characterKit, copyCond, int(atkPerBuff + (int(buff) - (int(buff)*(i/100)))), atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
         else:
             if condition.__contains__('self excluded'):
-                calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
             else:
                 activeCondATK = [newPerBuff, newFlatBuff]
                 print(f"ATK {condition}:")
-                calcATKCond(characterKit, copyCond, newPerBuff, newFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                calcATKCond(characterKit, copyCond, newPerBuff, newFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
                 
                 condition = condition.replace(' is ', ' is not ')
                 condition = condition.replace('As ', 'Not as ')
@@ -1823,10 +2091,14 @@ def calcATKCond(characterKit, condSoTATK, atkPerBuff, atkFlatBuff, linkBuffs, on
                 condition = condition.replace(", as the ", ", not as the ")
                 condition = condition.replace("(For ", "(After ")
                 condition = condition.replace("once only", "after one-time buff")
+                condition = condition.replace('Great chance', 'Without RNG chance')
+                
+                if condition.__contains__('Activates the Entrance Animation'):
+                    condition = "(Without Entrance buff)"
                 
                 activeCondATK = [atkPerBuff, atkFlatBuff]
                 print(f"ATK {condition}:")
-                calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+                calcATKCond(characterKit, copyCond, atkPerBuff, atkFlatBuff, linkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
     else:
         print(f'{characterKit.stats[1]} (Base ATK Stat)')
         # Duo 200% lead by default
@@ -1886,11 +2158,44 @@ def calcATKCond(characterKit, condSoTATK, atkPerBuff, atkFlatBuff, linkBuffs, on
         ATK = int(ATK + (ATK * (linkBuffs/100))) # Apply link buffs
         print(f'{ATK} (With {linkBuffs}% Link Skill Buff)')
         
+        if charUtil.domain:
+            domainBuff = 0
+            for line in charUtil.domain[1].split(';'):
+                print(line)
+                if line.__contains__(" allies' ATK "):
+                    print(line)
+                    buff = line.split('+')[1]
+                    buff = int(buff.split('%')[0])
+                    if characterKit.unitClass in line:
+                        domainBuff += buff
+                        if line.__contains__(', plus an additional ATK'):
+                            line = line.split(', ')[1]
+                            buff = line.split('+')[1]
+                            buff = int(buff.split('%')[0])
+                            for category in characterKit.categories:
+                                if category in line:
+                                    domainBuff += buff
+                                    break
+                            if characterKit.unitClass in line:
+                                domainBuff += buff
+                            break
+                        break
+                    for category in characterKit.categories:
+                        if category in line:
+                            domainBuff += buff
+                            break
+                    
+            print(f'{int(ATK * (1 + (domainBuff/100)))} (With {domainBuff}% Domain Skill Buff: {charUtil.domain[0]})')
+            calcActiveATK(active, int(ATK * (1 + (domainBuff/100))), activeATK, onAttackATK, crit, superEffective,
+            characterKit.rank, characterKit.SANames, characterKit.SAEffects, characterKit.kiValues,
+            characterKit.kiMultiplier, additional)
+            print(f'{ATK} (Without Domain Skill Buff)')
+        
         calcActiveATK(active, ATK, activeATK, onAttackATK, crit, superEffective,
         characterKit.rank, characterKit.SANames, characterKit.SAEffects, characterKit.kiValues,
         characterKit.kiMultiplier, additional)
 
-def calculateDEF(condition, line, defPerBuff, defFlatBuff, condSoTDEF, onAttackDEF, condSoTStat, onAttackStat):
+def calculateDEF(condition, line, defPerBuff, defFlatBuff, condSoTDEF, onAttackDEF, condSoTStat, onAttackStat, categories):
     if (condition.__contains__('The more HP remaining') or
     condition.__contains__('The less HP remaining')):
         buff = line.split('(up to ')[1]
@@ -1932,10 +2237,18 @@ def calculateDEF(condition, line, defPerBuff, defFlatBuff, condSoTDEF, onAttackD
             else:
                 condSoTDEF.insertLine(f'DEF +{buff}% (Once only)')
         elif not line.__contains__('self excluded'):
-            if flat:
-                defFlatBuff += int(buff)
+            if line.__contains__('Category allies excluded'):
+                category = line[line.find("} ('")+4:line.find("' Category")]
+                if category not in categories:
+                    if flat:
+                        condSoTDEF.insertLine(f"DEF +{buff} ({condition})")
+                    else:
+                        condSoTDEF.insertLine(f"DEF +{buff}% ({condition})")
             else:
-                defPerBuff += int(buff)
+                if flat:
+                    defFlatBuff += int(buff)
+                else:
+                    defPerBuff += int(buff)
     elif (condition.__contains__("When attacking") or
     condition.__contains__("when attacking") or secondEffect.__contains__("when attacking") or
     condition.__contains__("final blow") or
@@ -1965,7 +2278,7 @@ def calculateDEF(condition, line, defPerBuff, defFlatBuff, condSoTDEF, onAttackD
                 condSoTDEF.insertLine(f"DEF +{buff}% ({condition})")
     return defPerBuff, defFlatBuff
 
-def calculateATK(condition, line, atkPerBuff, atkFlatBuff, condSoTATK, onAttackATK, condSoTStat, onAttackStat):   
+def calculateATK(condition, line, atkPerBuff, atkFlatBuff, condSoTATK, onAttackATK, condSoTStat, onAttackStat, categories):   
     if (condition.__contains__('The more HP remaining') or
     condition.__contains__('The less HP remaining')):
         buff = line.split('(up to ')[1]
@@ -2032,7 +2345,7 @@ def calculateATK(condition, line, atkPerBuff, atkFlatBuff, condSoTATK, onAttackA
     condition.__contains__("After receiving") or
     condition.__contains__("evading an attack") or
     condition.__contains__("After guard is activated") or
-    condition.__contains__("whenever guard is activated") or
+    condition.__contains__("henever guard is activated") or
     condition.__contains__("For every attack evaded") or
     condition.__contains__("or every attack performed") or
     condition.__contains__("For every Super Attack performed") or
@@ -2078,7 +2391,7 @@ def calculateATK(condition, line, atkPerBuff, atkFlatBuff, condSoTATK, onAttackA
 
 # Read through kit, sepearate lines based on activiation condition (SoT vs. 'on attack')
 # Then, calculate SoT attack and conditional SoT attack  
-def calculateMain(characterKit, atkLinkBuffs, defLinkBuffs, crit, active):   
+def calculateMain(characterKit, atkLinkBuffs, defLinkBuffs, crit, active, charUtil):   
     condSoTATK = LinkedList()
     condSoTDEF = LinkedList()
     onAttackATK = LinkedList()
@@ -2109,7 +2422,8 @@ def calculateMain(characterKit, atkLinkBuffs, defLinkBuffs, crit, active):
         line.__contains__("Enemy's") or (line.__contains__("enemy's") and
         not line.__contains__("evading enemy's attack") and
         not line.__contains__(" enemy's HP is"))) and
-        not line.__contains__('allies')) or
+        not line.__contains__('allies') and
+        not line.__contains__("enemy's Super Attack")) or
         (line.__contains__('Type allies') and not line.__contains__(characterKit.type)) or
         (line.__contains__('Class allies') and not line.__contains__(characterKit.unitClass)) or
         (line.__contains__("for allies whose names include ") and characterKit.name not in line)):
@@ -2119,11 +2433,14 @@ def calculateMain(characterKit, atkLinkBuffs, defLinkBuffs, crit, active):
             line = line.replace(line[line.find('} and damage reduction rate'):line.find('} for')], '')
         if line.__contains__('& chance of performing a critical hit '):
             line = line.replace(' & chance of performing a critical hit', '')
-            line = line.replace(', DEF  ', ' & DEF ')
+            line = line.replace(', DEF ', ' & DEF ')
         elif line.__contains__('} and chance of performing a critical hit '):
             line = line.replace(line[line.find('} and chance of performing'):], '}')
-        elif line.__contains__(') and chance of performing a critical hit '):
+        elif (line.__contains__(') and chance of performing a critical hit ') and
+        line.__contains__(') at')):
             line = line.split(') and')[0] + ') at' + line.split(') at')[1]
+        elif line.__contains__(') and chance of performing a critical hit '):
+            line = line.split(') and')[0] + ') within' + line.split(') within')[1]
         elif (line.__contains__('chance of performing a critical hit ') and
         line.__contains__('} and ATK ')):
             line = line.replace(line[line.find('chance of performing '):line.find('} and ')+6], '')
@@ -2203,6 +2520,17 @@ def calculateMain(characterKit, atkLinkBuffs, defLinkBuffs, crit, active):
                                     atkFlatBuff += buff2
                                 else:
                                     atkPerBuff += buff2
+                elif line.__contains__('} and if '):
+                    cond1 = f'{cond[0]} (When {line.split("and if ")[1]})'
+                    
+                    if cond1.__contains__('ATK'):
+                        cond2 = cond1.replace('ATK ', "ATK +")
+                        cond2 = cond2.replace('& DEF ', "")
+                        condSoTATK.insertLine(cond2)
+                    if cond1.__contains__('DEF'):
+                        cond2 = cond1.replace('DEF ', "DEF +")
+                        cond2 = cond2.replace('ATK & ', "")
+                        condSoTDEF.insertLine(cond2)
                 else:
                     part = ally + "allies'" + part
                     cond1 = '(When' + part.split(' when')[1] + ')'
@@ -2224,10 +2552,10 @@ def calculateMain(characterKit, atkLinkBuffs, defLinkBuffs, crit, active):
         line.__contains__("aunches an additional Super Attack") or 
         line.__contains__("launching an additional Super Attack")):
             additional += 1
-        elif (line.__contains__("Launches ") and
+        elif (line.__contains__("aunches ") and
         line.__contains__(" additional attacks, each of which has a") and
         line.__contains__("chance of becoming a Super Attack")):
-            additional += int((line.split('Launches ')[1]).split(' additional attacks')[0])
+            additional += int((line.split('aunches ')[1]).split(' additional attacks')[0])
             
         if ((line.__contains__("Counters with ") or
              line.__contains__("counters with ") or
@@ -2238,33 +2566,35 @@ def calculateMain(characterKit, atkLinkBuffs, defLinkBuffs, crit, active):
         if ((line.__contains__('ATK ') or
         line.__contains__('ATK{passiveImg:')) and
         not line.__contains__('ATK Down')):
-            atkPerBuff, atkFlatBuff = calculateATK(condition, line, atkPerBuff, atkFlatBuff, condSoTATK, onAttackATK, condSoTStat, onAttackStat)
+            atkPerBuff, atkFlatBuff = calculateATK(condition, line, atkPerBuff, atkFlatBuff, condSoTATK, onAttackATK, condSoTStat, onAttackStat, characterKit.categories)
             
         if ((line.__contains__('DEF ') or
         line.__contains__('DEF{passiveImg:')) and
         not line.__contains__('DEF Down')):
-            defPerBuff, defFlatBuff = calculateDEF(condition, line, defPerBuff, defFlatBuff, condSoTDEF, onAttackDEF, condSoTStat, onAttackStat)
+            defPerBuff, defFlatBuff = calculateDEF(condition, line, defPerBuff, defFlatBuff, condSoTDEF, onAttackDEF, condSoTStat, onAttackStat, characterKit.categories)
 
     activeCondATK = [atkPerBuff, atkFlatBuff]
     #print(condSoTStat)
     #print(onAttackStat)
     print(f"\nInitial percent buffs: {atkPerBuff}% ATK, {defPerBuff}% DEF")
     print(f"Initial flat buffs: {atkFlatBuff} ATK, {defFlatBuff} DEF\n")
-    calcATKCond(characterKit, condSoTATK, atkPerBuff, atkFlatBuff, atkLinkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK)
+    
+    calcATKCond(characterKit, condSoTATK, atkPerBuff, atkFlatBuff, atkLinkBuffs, onAttackATK, crit, superEffective, additional, active, activeCondATK, charUtil)
     #input("Click any button to continue with unit defense:")
     #os.system('cls')
     #calcDEFCond(characterKit, condSoTDEF, defLinkBuffs, onAttackDEF, crit, superEffective, additional, 1)
     
 # Read through kit, sepearate lines based on activiation condition (SoT vs. 'on attack')
 # Then, calculate SoT defense and conditional SoT defense  
-def calculateLinks(characterKit, partnerKit):
+def calculateLinks(characterKit, partnerKit, charUtil):
     os.system('cls')
     print(f"Calculating: {characterKit.rank} {characterKit.type} {characterKit.name} (Linked with {partnerKit.rank} {partnerKit.type} {partnerKit.name}):")
     
     # Find all shared links
     sharedLinks = []
     i = 0
-    if (characterKit.name != partnerKit.name or int(partnerKit.id) >= 4000000):
+    if (characterKit.name != partnerKit.name or
+    (int(partnerKit.id) >= 4000000 and characterKit.id != partnerKit.id)):
         print("\nShared Links:")
         for sharedLink in characterKit.links:
             if sharedLink in partnerKit.links:
@@ -2273,12 +2603,12 @@ def calculateLinks(characterKit, partnerKit):
             i = i + 1
     else:
         print("Unit cannot link with partner (Shared name)")
-        calculateMain(characterKit, 0, 0, False, characterKit.active)
+        calculateMain(characterKit, 0, 0, False, characterKit.active, charUtil)
         return
 
     if not sharedLinks:
         print("Unit cannot link with partner (No shared links)")
-        calculateMain(characterKit, 0, 0, False, characterKit.active)
+        calculateMain(characterKit, 0, 0, False, characterKit.active, charUtil)
         return
     else:
         # Calculate shared link buffs
@@ -2347,7 +2677,7 @@ def calculateLinks(characterKit, partnerKit):
         print(f"- Recovers {recoveryLinkBuffs}% HP")
         print(f"- All enemies' DEF -{defLinkDebuffs}%")
         
-        calculateMain(characterKit, atkLinkBuffs, defLinkBuffs, crit, characterKit.active)
+        calculateMain(characterKit, atkLinkBuffs, defLinkBuffs, crit, characterKit.active, charUtil)
    
 # Helper method to get all unit details
 def getPartnerKit(partnerID):      
@@ -2464,6 +2794,8 @@ def getKit(characterID):
         if not response.__contains__('],&quot;transformation_character_id&quot;:null'):
             transform = response[response.find('],&quot;transformation_character_id&quot;:')+42:]
             transform = transform[:7]
+        if characterID == 1015051:
+            transform = [transform, '4015071', '4015071']
                 
         title = response[response.find(name):response.find(f' | DOKKAN.FYI')]
         title = '[' + title[title.find(' - ')+3:] + ']'
@@ -2479,39 +2811,74 @@ def getKit(characterID):
             passive = passive.replace("- ATK & DEF 20%{passiveImg:up_g} and if there is another 'Bond of Friendship' Category ally attacking in the same turn, plus an additional ATK & DEF 5%{passiveImg:up_g}", '- ATK & DEF 20%{passiveImg:up_g}\n- An additional ATK & DEF 5%{passiveImg:up_g} when there is another "Bond of Friendship" Category ally attacking in the same turn')
         elif characterID == 1031051:
             passive = passive.replace('ATK100%', 'ATK 100%') # In-game parsing error for SSR SSJ3 Daima Vegeta
+        elif characterID == 1013261:
+            passive = passive.replace("- ATK & DEF 12%{passiveImg:up_g} and per 'Giant Form' Category ally on the team, plus an additional ATK & DEF 1%{passiveImg:up_g} (up to 3%)", "- ATK & DEF 12%{passiveImg:up_g}\n- An additional ATK & DEF 1%{passiveImg:up_g} per 'Giant Form' Category ally on the team (up to 3%)")
+        elif characterID == 1013121:
+            passive = passive.replace("- ATK & DEF 5%{passiveImg:down_y}", "- Super Class enemies' ATK & DEF 5%{passiveImg:down_y}")
+        elif characterID == 1015891 and EZA == 0:
+            passive = passive.replace(passive[passive.find(' and if there is a '):passive.find('3%{passiveImg:up_g}')], '\n- An additional ATK & DEF ')
+            passive = passive.replace('3%{passiveImg:up_g}', '3%{passiveImg:up_g} when there is a "Vegeta' + "'" + 's Family" Category enemy')
+        elif characterID == 1015901 and EZA == 0:
+            passive = passive.replace(passive[passive.find(' and if there is a '):passive.find('3%{passiveImg:up_g}')], '\n- An additional ATK & DEF ')
+            passive += ' when there is a "Goku' + "'" + 's Family" Category enemy'
         
         response = (requests.get(f'https://dokkan.fyi/characters/{characterID}')).text
         stats = retrieveStats(response, characterID, EZA, rank)
         
-        activeName = ''
-        active = []
-        activeCond = ''
+        domain = ''
+        if response.__contains__('domain&quot;:{&quot;id&quot;:'):
+            domain = response[response.find('domain&quot;:{&quot;id&quot;:'):]
+            domainName = domain[domain.find(',&quot;name&quot;:&quot;')+24:domain.find('&quot;,&quot;description&quot;:&quot;')]
+            domainEffect = domain[domain.find('&quot;,&quot;description&quot;:&quot;')+37:domain.find('&quot;}},')]
+            domainEffect = domainEffect.replace('\\n', '')
+            domainEffect = domainEffect.replace('&#39;', "'")
+            domainEffect = domainEffect.replace('\\&quot;', "'")
+            domainEffect = domainEffect.replace('&amp;', "&")
+            domain = [domainName, domainEffect]
+        
+        active = ''
         if not response.__contains__('active_skill&quot;:null,'):
-            response = response[response.find('active_skill&quot;:{&quot;id&quot;:'):]
-            response = response.replace('&#39;', "'")
-            response = response.replace('\\n', '')
-            response = response.replace('&amp;', '&')
-            response = response.replace('\\&quot;', "'")
-            activeName = response[response.find(',&quot;name&quot;:&quot;')+24:response.find('&quot;,&quot;description&quot;:&quot;')]
-            active = response[response.find('&quot;,&quot;description&quot;:&quot;')+37:response.find('&quot;,&quot;condition&quot;:&quot;')]
-            activeCond = response[response.find('&quot;,&quot;condition&quot;:&quot;')+35:response.find('&quot;,&quot;effects&quot;:[')]
+            active = response[response.find('active_skill&quot;:{&quot;id&quot;:'):]
+            active = active.replace('&#39;', "'")
+            active = active.replace('\\n', '')
+            active = active.replace('&amp;', '&')
+            active = active.replace('\\&quot;', "'")
+            activeName = active[active.find(',&quot;name&quot;:&quot;')+24:active.find('&quot;,&quot;description&quot;:&quot;')]
+            activeEffect = active[active.find('&quot;,&quot;description&quot;:&quot;')+37:active.find('&quot;,&quot;condition&quot;:&quot;')]
+            activeCond = active[active.find('&quot;,&quot;condition&quot;:&quot;')+35:active.find('&quot;,&quot;effects&quot;:[')]
             
             # Adjust INT Kid Goku's Active multiplier for GBL (550% on JP, 650% on GBL)
             if characterID == 1016571:
-                active = active.replace('Causes ', 'Massively raises ATK temporarily and causes ')
-            
-            active = [activeName, active, activeCond]
+                activeEffect = activeEffect.replace('Causes ', 'Massively raises ATK temporarily and causes ')
+            active = [activeName, activeEffect, activeCond]
         
         if characterID >= 4000000:
             name += (' (<->)')
+            
+        stack = 0
+        
+        standby = ''
+        if response.__contains__('finish_skills&quot;:[{'):
+            standby = response[response.find('finish_skills&quot;:[{'):]
+            standbyName = standby[standby.find('uot;name&quot;:&quot;')+21:standby.find('&quot;,&quot;description&quot;:&quot;')]
+            standbyEffect = standby[standby.find('&quot;,&quot;description&quot;:&quot;')+37:standby.find('&quot;,&quot;condition&quot;:&quot;')]
+            standbyEffect = standbyEffect.replace('\\n', '')
+            standbyEffect = standbyEffect.replace('&#39;', "'")
+            standbyCond = standby[standby.find('&quot;,&quot;condition&quot;:&quot;')+35:standby.find('&quot;,&quot;effects&quot;:[{')]
+            standbyCond = standbyCond.replace('\\n', '')
+            standbyCond = standbyCond.replace('&#39;', "'")
+            standby = [standbyName, standbyEffect, standbyCond]
         
         # Create object containing all unit kit details
         characterKit = Unit(characterID, unitClass, type, rank, title, 
         name, lead, SANames, SAEffects, passiveName, passive, links, linkBuffs,
         categories, stats, kiValues, kiMultiplier, transform, active)
+        
+        # Create object containing all unit kit details
+        charUtil = transformUtil(stack, standby, domain)
 
         os.system('cls')
-        return characterKit
+        return characterKit, charUtil
     else:
         print('Failed to retrieve character information.')
         return None
@@ -2604,11 +2971,11 @@ def readCardFile(fileName):
     os.system('cls')
     return characterKit
 
-def main(characterID):
+def main(characterID, charUtil):
     if characterID == 0:        
         mainUnit = readCardFile(input('Add card .txt file here: '))
     else:
-        mainUnit = getKit(characterID)
+        mainUnit, charUtil = getKit(characterID)
     print(f'{mainUnit.unitClass} {mainUnit.type} {mainUnit.rank} {mainUnit.title} {mainUnit.name}')
     print(f'\nLeader Skill: {mainUnit.lead}')
     
@@ -2617,6 +2984,10 @@ def main(characterID):
     
     print(f'\nPassive Skill: {mainUnit.passiveName}')
     print(mainUnit.passive)
+    
+    if charUtil.domain:
+        print(f'\nDomain Skill: {charUtil.domain[0]}')
+        print(f'- {charUtil.domain[1]}')
     
     if mainUnit.active:
         print(f'\nActive Skill: {mainUnit.active[0]}')
@@ -2640,15 +3011,16 @@ def main(characterID):
     else:
         partnerID = int(input("Enter the partner character's Card ID from Dokkan.FYI: "))
         partnerKit = getPartnerKit(partnerID)
-        calculateLinks(mainUnit, partnerKit)
+        calculateLinks(mainUnit, partnerKit, charUtil)
     
     if mainUnit.transform != '':
         input("Click any button to continue with transformed form:")
-        main(int(mainUnit.transform))
+        main(int(mainUnit.transform), charUtil)
     else:
         input("Click any button to finish the program:")
     
 os.system('cls') # Clears terminal; replace with os.system('clear') if on Unix/Linux/Mac
 print("Welcome to Manila's Dokkan Calculator (Powered by Dokkan.FYI by CapnMZ)")
 characterID = int(input("Enter the tested character's Card ID from Dokkan.FYI: "))
-main(characterID)
+charUtil = []
+main(characterID, charUtil)

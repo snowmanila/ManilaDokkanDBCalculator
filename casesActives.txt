@@ -1,0 +1,45 @@
+Raises:
+- Greatly raises ATK - 50%
+- Massively raises ATK - 100%
+
+Damage:
+- Mega-Colossal - 4.4%/4.9%
+- Ultimate - 550%
+
+ATK Raises:
+- ATK +x1% and DEF -x2% in battle (1021811) ✓
+- ATK -x% and evades enemy's attack (including Super Attack) for 1 turn (1019401) ✓
+- ATK & DEF +x% in battle (1023091) ✓
+- ATK & DEF +x1% and all enemies' ATK & DEF -x2% for 1 turn (1020991) ✓
+- ATK & DEF +x1%, all enemies' ATK & DEF -x2% and stuns all enemies for 1 turn (1019911) ✓
+- ATK & DEF +x%, attacks effective against all Types and guaranteed to hit for 1 turn (1019341) ✓
+- Ki +z and ATK +x% for 1 turn (1021141) ✓
+- Ki +z and ATK & DEF +x% for 1 turn (1022121) ✓
+- Ki +z, ATK +x% and attacks effective against all Types for 1 turn (1021671) ✓
+- Ki +z, ATK +x1% and DEF +x2% for 1 turn (1020221) ✓
+- Ki +z, ATK +x1% and DEF -x2% for 1 turn (1019991) ✓
+- Ki +z, DEF +x% and performs critical hits for 1 turn (1021431)
+- All allies' ATK +33% for 1 turn (1015911) ✓
+- Removes all allies' status effects and raises all allies' ATK by x% for y turns (1019041) ✓
+- Removes all allies' negative effects; all allies' Ki +z and ATK & DEF +x% for y turns (1021971) ✓
+- Recovers x1% HP, guards all attacks for 1 turn and raises all allies' DEF by x2% for y turns (1022221)
+
+Effects:
+- Causes y damage to enemy (1022771) ✓
+- Causes y damage to enemy and lowers ATK & DEF by x% for 1 turn (1022091) ✓
+- Causes y damage to enemy and lowers ATK by 31%, lowers DEF by 81% and seals Super Attack for 1 turn (1024081)
+- Causes y damage to enemy and raises allies' ATK by x% for 1 turn (1018541) ✓
+- Causes y damage to enemy and, within the turn activated, all attacks become critical hits (4022391)
+- Raises ATK temporarily and causes y damage to enemy (1022781) ✓
+- Raises ATK by x% temporarily then causes damage to enemy and, within the turn activated, all attacks become critical hits and stuns the attacked enemy while reducing own DEF by half (1019281)
+- Greatly raises ATK temporarily and causes y damage to enemy (4017971) ✓
+- Greatly raises ATK temporarily and causes y damage to enemy; all allies' Ki +z for 1 turn (1021481)
+- Greatly raises ATK temporarily and causes y damage to enemy; disables enemy's action once within the turn (1024831)
+- Greatly raises ATK temporarily and causes y damage to enemy; disables enemy's action once within the turn; Exchanges with y2 (1024141)
+- Greatly raises ATK temporarily, causes y damage to enemy and massively lowers DEF (4017911) ✓
+- Greatly raises ATK temporarily, causes y damage to enemy and delays a single targeted enemy's attack for 1 turn (1023931) ✓
+- Greatly raises ATK temporarily, causes y damage and stuns the enemy for 1 turn (1023621) ✓
+- Massively raises ATK temporarily and causes y damage to enemy (1016811) ✓
+- Massively raises ATK temporarily, causes y damage and stuns the enemy for 1 turn (1022341) ✓
+- Massively raises ATK temporarily, causes y damage to enemy and, within the turn activated, all attacks become critical hits (1024351) ✓
+- Performs critical hits within the turn in which the Active Skill is activated, greatly raises ATK temporarily, causes y damage to all enemies and stuns them for 1 turn while sacrificing x% HP (1023981) ✓

@@ -9,6 +9,7 @@ When attacking with y or more Ki
 
 When receiving a normal attack
 - Counters with enormous power (1012630) ✓
+- Counters with tremendous power (1012651) ✓
 - Damage reduction rate +x% temporarily and counters with enormous power (1008410) ✓
 - Damage reduction rate +x% temporarily and counters with tremendous power (1009331) ✓
 
