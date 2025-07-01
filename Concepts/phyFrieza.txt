@@ -19,10 +19,10 @@ Can be activated upon entering attacking turn (once only)
 *Basic effect(s)*\n- Ki +2\n- ATK & DEF 200%{passiveImg:up_g}\n- High chance of evading enemy’s attack\n- Launches an additional attack that has a great chance of becoming a Super Attack\n- Attacked enemy's ATK & DEF 30%{passiveImg:down_y} for 2 turns\n*For 1 turn from the character’s entry turn*\n- Damage reduction rate 50%{passiveImg:up_g}\n*For 7 turn(s) from the character’s entry turn*\n- Guards all attacks\n*For 7 turn(s) after receiving or evading an attack (including Super Attack)*\n- ATK & DEF 100%{passiveImg:up_g}\n- Launches an additional Super Attack\n*For 1 turn(s) after receiving or evading an attack (including Super Attack)*\n- Chance of evading enemy’s attack 30%{passiveImg:up_g}\n*When the target enemy is in the following status: {passiveImg:atk_down}, {passiveImg:def_down}, {passiveImg:stun} or {passiveImg:astute}*\n- Launches an additional Super Attack
 Full Power, Gifted Warriors, Mastered Evolution, Otherworld Warriors, Representatives of Universe 7, Resurrected Warriors, Successors, Sworn Enemies, Time Limit, Tournament Participants, Transformation Boost, Universe Survival Saga, Wicked Bloodline
 2000 2000 2000, 3700 3300 4100, 4000 3600 4400, 4700 3910 4710, 5000 4600 5400
-Death Psychokinesis (Extreme); Greatly raises DEF, greatly raises ATK for 1 turn, causes immense damage to enemy and seals Super Attack; 12
+Death Psychokinesis (Extreme); Raises DEF by 50%, raises ATK by 50% for 1 turn, causes immense damage to enemy and seals Super Attack; 12
 0, Golden Frieza (Angel)
 None
-Prodigies, ATK +15%; Strongest Clan in Space, DEF -10% and Ki +2; Universe's Most Malevolent, ATK +20%; Shocking Speed, Ki +2 and DEF +5%; Nightmare, ATK +15%; Tournament of Power, Ki +3 and ATK & DEF +7%; Fierce Battle, ATK +20%
+Prodigies, ATK +15%; Strongest Clan in Space, DEF -10% and Ki +2; Universe’s Most Malevolent, ATK +20%; Shocking Speed, Ki +2 and DEF +5%; Nightmare, ATK +15%; Tournament of Power, Ki +3 and ATK & DEF +7%; Fierce Battle, ATK +20%
 None
 None
 None
