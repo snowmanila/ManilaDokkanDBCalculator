@@ -14,24 +14,44 @@ To save on this, I developed a Python script utilizing in-game information to ca
         - ATK = int(ATK + atkFlatBuff)
     5. Multiply by Link Buffs from Partner(s)
         - ATK = int(ATK * (1 + (totalLinkBuffs/100)))
+    5. Multiply by Domain Buffs (if applicable) (Add buffs if multiple)
+        - ATK = int(ATK * (1 + (domainBuff/100)))
     6. **(ATK Only)** Multiply by Ki Multiplier (Varies by Unit, changes with the amount of Ki the character has)
         - **(For Units that cannot go past 12 Ki):** kiMultiplier = (12KiMultiplier/24)*(12+kiValue)
-        - **(For > 12 Ki (LRs))**: kiMultiplier = 12KiMultiplier + (((200-12KiMultiplier)/12)*(kiValue-12))
+        - **(For > 12 Ki (LRs))**: kiMultiplier = (((200-12KiMultiplier)/12)*(characterKi-12))+12KiMultiplier
         - ATKnew = int(ATK * (kiMultiplier/100))
     7. Multiply by 'On Attack' Percentage Buffs
         - ATK = int(ATK * (1 + (saPerBuff/100)))
-        - **'On Attack' refers to passives that are activated when the character is attacking. Passives include 'When attacking', 'For every Ki when attacking', 'When the target enemy...', etc.**
+        - **'On Attack' refers to passives that are activated when the character is attacking. Passives include 'When attacking', 'For every Ki when attacking', 'When the target enemy...', 'When the Finish Effect is activated', etc.**
             - **Does not apply to 'As the x attacker in a turn', which is calculated with initial calcs**
+            - Only add Finish Effect stat when calculating for Finish Effect APT
     8. Add 'On Attack' Flat Buffs
         - ATK = int(ATK + saFlatBuff)
-    9. Apply SA Effects:
-        - **(ATK Only)** Multiply by (ATK Multiplier + SA Multiplier)
+    9. Apply SA Effects (if applicable):
+        - **(ATK Only)** Multiply by (ATK Multiplier + SA Multiplier + SA Bonus Buffs (if applicable) (Super Attack Power +x%))
+            - For additional/stacking Super Attacks, add ATK multiplier for each Super Attack performed
         - **(DEF Only)** Multiply by (1 + DEF Multiplier)
-        - If a Unit has a permanently stacking Super Attack, multiply the ATK/DEF Multiplier by the number of times the character has launched a stacking Super Attack
+        - For additional/stacking Super Attacks, add ATK/DEF multiplier for each Super Attack performed, then multiply
+
+    For Active Skills:
+        - Calculate until Step 7, exclude nuking 'on attack' passives and other 'on attack' passives that Active Skills won't activate.
+        - Multiply by ATK raise from Active Skill (if applicable)
+            - Continue normal calculation if calculating SA ATK with Active buff
+        - Multiply by damage multiplier (and stacks if applicable) if calculating Active Skill APT (if applicable)
+
+    For Finish Skills:
+        - Calculate until Step 7, exclude nuking 'on attack' passives and other 'on attack' passives that Active Skills won't activate.
+        - Add Finish Skill passive to 'on attack' passive buff calculation
+        - If charge-based:
+            - Multiply by (ATK raise from Standby Skill (if applicable) + Finish Skill Multiplier (+ stacks if applicable))
+            - ATK raise = Charge count * ATK raise per charge (If charge-based)
+        - If KO:
+            - Multiply by (ATK raise from SA (if applicable) + Finish Skill Multiplier (+ stacks if applicable))
+        - Multiply by damage multiplier (and stacks if applicable) if calculating Active Skill APT (if applicable)
 
 This should cover everything used in the stat calculation process.
 
-This calculator is currently a WIP, with different cases and passives still being tested with each unit. So consider this an open-beta test for the Calculator! This calculator has already been tested for a bulk number of units, including the pre-3rd Year Units, Super Strike TURs, etc, as well as all links and calculating link buffs from partners. Additionally, this calculator checks for transformations and (S)EZAs upon calculation, which can be selected in the terminal to test between the various steps, performing the appropriate adjustments if needed with changes in stats and passives. If there are any issues with the calculator, or any questions or suggestions, feel free to reach out!
+This calculator is currently a WIP, with different cases and passives still being tested with each unit. So consider this an open-beta test for the Calculator! This calculator has already been tested for a bulk number of units, including all pre-4th Year Units, Super Strike TURs, etc, as well as all links and calculating link buffs from partners. Additionally, this calculator checks for transformations and (S)EZAs upon calculation, which can be selected in the terminal to test between the various steps, performing the appropriate adjustments if needed with changes in stats and passives. If there are any issues with the calculator, or any questions or suggestions, feel free to reach out!
 
 Anyways, I hope everyone enjoys this (early-access) version of the Dokkan API Calculator!
 
