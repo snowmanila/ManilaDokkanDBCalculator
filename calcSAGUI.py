@@ -11,6 +11,8 @@ from PIL import Image, ImageTk
 from tkinter import *
 from tkinter import scrolledtext
         
+# Written by snowmanila/manilamania (Updated: 9/22/25)
+        
 # Class for keeping track of a unit and its kit
 @dataclass
 class Unit:
@@ -319,7 +321,6 @@ def checkCond2(characterKit, special, totalBuff, onAttackStat, crit, superEffect
     calcStatAttack(characterKit, dbCursor, special, newBuff, onAttackStat, [0, 0], [0, 0], "", crit, superEffective, additional)
 
 def calcStatKi(characterKit, totalBuff, onAttackStat, crit, superEffective, additional):
-    print(characterKit.specials)
     if characterKit.specials:
         baseKiMultiplier = (((200-characterKit.eball_mod_mid)/12)*(characterKit.specials[0][2]-12))+characterKit.eball_mod_mid
         # Adjusts base Ki Multiplier for URs
@@ -1308,6 +1309,11 @@ def getKit(characterID, dbCursor, EZA):
     if dbOutput:
         characterKit.active_skill_set_id = dbOutput[0][2]
     
+        dbCursor.execute(f'''SELECT * FROM dokkan_field_active_skill_set_relations where active_skill_set_id = {dbOutput[0][2]}''')
+        dbOutput = dbCursor.fetchall()
+        if dbOutput:
+            characterKit.dokkan_fields = dbOutput[0][1]
+    
     dbCursor.execute(f'''SELECT * FROM cards where id = {characterID}''')
     potentialOutput = dbCursor.fetchall()[0][52] # HiPo
     # Optional selection for GBL/JP kits
@@ -1618,8 +1624,6 @@ def getKit(characterID, dbCursor, EZA):
                         characterKit.atk_max += 3760
                         characterKit.def_max += 3448
     
-    # Insert Active and Domain info here
-    
     if characterID >= 4000000:
         characterKit.name += (' (<->)')
             
@@ -1676,8 +1680,8 @@ def main():
     if mainUnit.costumes:
         kitLabelText += f'\nCostume: {mainUnit.costumes}'
     
-    if mainUnit.dokkan_fields:
-        kitLabelText += f'\nDomain Skill: {mainUnit.dokkan_fields[0]}\n- {mainUnit.dokkan_fields[1]}'
+    #if mainUnit.dokkan_fields:
+    #    kitLabelText += f'\nDomain Skill: {mainUnit.dokkan_fields[0]}\n- {mainUnit.dokkan_fields[1]}'
     
     if mainUnit.active_skill_set_id:
         dbCursor.execute(f'''SELECT * FROM active_skill_sets where id = {mainUnit.active_skill_set_id}''')
