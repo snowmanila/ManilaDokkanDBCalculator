@@ -1,4 +1,4 @@
-# Manila's Dokkan Web Calculator (Powered by Dokkan Wiki by ThievingSix)
+# Manila's Dokkan DB Calculator
 
 ## Overview
 
