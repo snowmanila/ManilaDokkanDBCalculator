@@ -12,7 +12,7 @@ from tkinter import *
 from tkinter import scrolledtext
         
 # Written by snowmanila/manilamania (Updated: 9/22/25)
-        
+
 # Class for keeping track of a unit and its kit
 @dataclass
 class Unit:
@@ -110,8 +110,6 @@ class Partner:
 
 # Dev Note: Adjust AGL LR Gotenks
 # Dev Note: Adjust TEQ LR Broly's EZA stacks (Multi-select?)
-
-# Dev Note: Adjust stacking quantities in calculation, refer to additional documentation
 
 # Calculate ATK stat given 'on attack' conditions (When attacking, per attack
 # evaded/received/performed, when the target enemy ..., etc.)
@@ -290,37 +288,51 @@ def calcATKSA(characterKit, dbCursor, special, totalStat, counter, crit, superEf
                             print(f"Finish Effect APT (With {i} Super Attack, {finishMultiplier*100}%): {str(int(ATK*(1+ATKmultiplier+(baseATKmultiplier*i))*finishMultiplier))} (Super Effective: {str(int(ATK*(1+ATKmultiplier+(baseATKmultiplier*i))*finishMultiplier*1.5))})")
                         else:
                             print(f"Finish Effect APT (With {i} Super Attack, {finishMultiplier*100}%): {str(int(ATK*(1+ATKmultiplier+(baseATKmultiplier*i))*finishMultiplier))}")'''
-
-def checkCond2(characterKit, special, totalBuff, onAttackStat, crit, superEffective, additional):
-    atkPerBuff = 0
-    defPerBuff = 0
-    atkFlatBuff = 0
-    defFlatBuff = 0
-    """Collects the names of all checked items."""
-    '''checked_items = []
-    for i, var in enumerate(atkdefVars2):
-        #if var.get() == 1:
-            # onAttackATK += onAttackStat[0][i][1]
-            # onAttackDEF += onAttackStat[0][i][1]
-        #    checked_items.append(condSoTStat[0][i])
-    for i, var in enumerate(atkVars2):
-        #if var.get() == 1:
-            # onAttackATK += onAttackStat[0][i][1]
-        #    checked_items.append(condSoTStat[1][i])
-    for i, var in enumerate(defVars2):
-        #if var.get() == 1:
-            # onAttackDEF += onAttackStat[0][i][1]
-        #    checked_items.append(condSoTStat[2][i])'''
+def calculateAttack(characterKit, special, totalBuff, onAttackStat, checkAttack, crit, superEffective, additional):
+    perBuff = [0, 0]
+    flatBuff = [0, 0]
     
-    newBuff = [int(totalBuff[0] * (1 + (atkPerBuff/100))), int(totalBuff[1] * (1 + (defPerBuff/100)))] # Apply 'on attack' percentage buffs
-    print(f"| {newBuff[0]} | {newBuff[1]} | (With {atkPerBuff}%/{defPerBuff}% 'On Attack' Passive Buff)")
-    newBuff[0] += int(atkFlatBuff) # Apply 'on attack' percent buffs
-    newBuff[1] += int(defFlatBuff) # Apply 'on attack' flat buffs
-    print(f"| {newBuff[0]} | {newBuff[1]} | (With {atkFlatBuff}/{defFlatBuff} Flat 'On Attack' Passive Buff)")
+    # Collects the names of all checked items.
+    for i, check in enumerate(checkAttack[0]):
+        if check.get():
+            match onAttackStat[0][i][3]:
+                case 0:
+                    flatBuff[0] += onAttackStat[0][i][1]
+                    flatBuff[1] += onAttackStat[0][i][2]
+                case 1:
+                    flatBuff[0] -= onAttackStat[0][i][1]
+                    flatBuff[1] -= onAttackStat[0][i][2]
+                case 2:
+                    perBuff[0] += onAttackStat[0][i][1]
+                    perBuff[1] += onAttackStat[0][i][2]
+                case 3:
+                    perBuff[0] -= onAttackStat[0][i][1]
+                    perBuff[1] -= onAttackStat[0][i][2]
+    for i, check in enumerate(checkAttack[1]):
+        if check.get():
+            match onAttackStat[1][i][3]:
+                case 0: flatBuff[0] += onAttackStat[1][i][1]
+                case 1: flatBuff[0] -= onAttackStat[1][i][1]
+                case 2: perBuff[0] += onAttackStat[1][i][1]
+                case 3: perBuff[0] -= onAttackStat[1][i][1]
+    for i, check in enumerate(checkAttack[2]):
+        if check.get():
+            match onAttackStat[2][i][3]:
+                case 0: flatBuff[1] += onAttackStat[2][i][1]
+                case 1: flatBuff[1] -= onAttackStat[2][i][1]
+                case 2: perBuff[1] += onAttackStat[2][i][1]
+                case 3: perBuff[1] -= onAttackStat[2][i][1]
     
-    calcStatAttack(characterKit, dbCursor, special, newBuff, onAttackStat, [0, 0], [0, 0], "", crit, superEffective, additional)
+    totalBuff = [int(totalBuff[0] * (1 + (perBuff[0]/100))), int(totalBuff[1] * (1 + (perBuff[0]/100)))] # Apply 'on attack' percentage buffs
+    print(f"| {totalBuff[0]} | {totalBuff[1]} | (With {perBuff[0]}%/{perBuff[1]}% 'On Attack' Passive Buff)")
+    totalBuff[0] += int(flatBuff[0]) # Apply 'on attack' percent buffs
+    totalBuff[1] += int(flatBuff[1]) # Apply 'on attack' flat buffs
+    print(f"| {totalBuff[0]} | {totalBuff[1]} | (With {flatBuff[0]}/{flatBuff[1]} Flat 'On Attack' Passive Buff)")
+    
+    calcStatAttack(characterKit, dbCursor, special, totalBuff, onAttackStat, [0, 0], [0, 0], "", crit, superEffective, additional)
 
-def calcStatKi(characterKit, totalBuff, onAttackStat, crit, superEffective, additional):
+
+def calcStatKi(characterKit, totalBuff, onAttackStat, checkAttack, crit, superEffective, additional):
     if characterKit.specials:
         baseKiMultiplier = (((200-characterKit.eball_mod_mid)/12)*(characterKit.specials[0][2]-12))+characterKit.eball_mod_mid
         # Adjusts base Ki Multiplier for URs
@@ -348,23 +360,23 @@ def calcStatKi(characterKit, totalBuff, onAttackStat, crit, superEffective, addi
             dbCursor.execute(f'''SELECT * FROM special_sets where id = {special[0]}''')
             saOutput = dbCursor.fetchall()
             print(f"Launching Super Attack: {saOutput[0][1]} at {special[1]} Ki")
-            checkCond2(characterKit, special, newBuff, onAttackStat, crit, superEffective, additional)
+            calculateAttack(characterKit, special, newBuff, onAttackStat, checkAttack, crit, superEffective, additional)
         if special[1] < 12 and characterKit.rarity != 'LR':
             kiATK = int(ATK * (characterKit.eball_mod_max/100)) # Apply Ki multiplier
             print(f'{kiATK} (With {characterKit.eball_mod_max}% Ki Multiplier)')
             print(f"Launching Super Attack: {saOutput[0][1]} at 12 Ki")
-            checkCond2(characterKit, special, newBuff, onAttackStat, crit, superEffective, additional)
+            calculateAttack(characterKit, special, newBuff, onAttackStat, checkAttack, crit, superEffective, additional)
         if special[1] < 18 and characterKit.rarity == 'LR':
             kiMultiplier = (((200-characterKit.eball_mod_mid)/12)*(18-12))+characterKit.eball_mod_mid
             kiATK = int(ATK * (kiMultiplier/100)) # Apply Ki multiplier
             print(f'{kiATK} (With {kiMultiplier}% Ki Multiplier)')
             print(f"Launching Super Attack: {saOutput[0][1]} at 18 Ki")
-            checkCond2(characterKit, special, newBuff, onAttackStat, crit, superEffective, additional)
+            calculateAttack(characterKit, special, newBuff, onAttackStat, checkAttack, crit, superEffective, additional)
         if characterKit.rarity == "LR":
             newBuff = [int(totalBuff[0] * 2), totalBuff[1]]
             print(f'| {newBuff[0]} | {newBuff[1]} | (With 200% Ki Multiplier)')
             print(f"Launching Super Attack: {saOutput[0][1]} at 24 Ki")
-            checkCond2(characterKit, special, newBuff, onAttackStat, crit, superEffective, additional)
+            calculateAttack(characterKit, special, newBuff, onAttackStat, checkAttack, crit, superEffective, additional)
     else:
         if characterKit.finish_skills:
             print("No Super Attacks found")
@@ -419,12 +431,12 @@ def calcStatKi(characterKit, totalBuff, onAttackStat, crit, superEffective, addi
         else:
             print("No Super Attacks found\n")
 
-def calcDomainStat(characterKit, totalBuff, onAttackStat, crit, superEffective, additional):
+def calcDomainStat(characterKit, totalBuff, onAttackStat, checkAttack, crit, superEffective, additional):
     if characterKit.dokkan_fields and domain.get() == 1:
         domainATK = 0
         domainDEF = 0
         dbCursor.execute(f'''SELECT * FROM dokkan_field_efficacies where dokkan_field_efficacy_set_id = {characterKit.dokkan_fields}''')
-        domainOutput = dbCursor.fetchall()    
+        domainOutput = dbCursor.fetchall()
         for domainLine in domainOutput:
             match domainLine[3]:
                 case 1: 
@@ -439,11 +451,11 @@ def calcDomainStat(characterKit, totalBuff, onAttackStat, crit, superEffective, 
         domainOutput = dbCursor.fetchall()   
         if domainATK != 0 or domainDEF != 0:
             print(f'| {domainBuff[0]} | {domainBuff[1]} | (With {domainATK}%/{domainDEF}% Domain Skill Buff: {domainOutput[0][2]})')
-        calcStatKi(characterKit, domainBuff, onAttackStat, crit, superEffective, additional)
+        calcStatKi(characterKit, domainBuff, onAttackStat, checkAttack, crit, superEffective, additional)
     else:
-        calcStatKi(characterKit, totalBuff, onAttackStat, crit, superEffective, additional)
+        calcStatKi(characterKit, totalBuff, onAttackStat, checkAttack, crit, superEffective, additional)
 
-def calcActiveStat(characterKit, totalBuff, onAttackStat, crit, superEffective, additional):
+def calcActiveStat(characterKit, totalBuff, onAttackStat, checkAttack, crit, superEffective, additional):
     atkBuff = 0
     defBuff = 0
     if characterKit.active_skill_set_id and active.get() == 1:
@@ -465,112 +477,7 @@ def calcActiveStat(characterKit, totalBuff, onAttackStat, crit, superEffective, 
         totalBuff[1] = int(totalBuff[1] * (1 + ((54+defBuff)/100)))
         superEffective = True
         print(f'| {totalBuff[0]} | {totalBuff[1]} | (With {54+atkBuff}%/{54+defBuff}% Active Skill Buff)')
-    calcDomainStat(characterKit, totalBuff, onAttackStat, crit, superEffective, additional)
-
-def checkCond(characterKit, totalBuff, condSoTStat, atkPerBuff, defPerBuff, atkFlatBuff, defFlatBuff, linkBuffs, onAttackStat, crit, superEffective, additional):
-    totalBuff = [characterKit.atk_max, characterKit.def_max]
-    # Dev Note: Fix Whitespace spacing
-    print('| ATK | DEF |')
-    print('-------------')
-    print(f'| {totalBuff[0]} | {totalBuff[1]} | (Base Stat)')
-    # Duo 200% lead by default
-    lead = 5
-    # Dev note: Temp condition, manually checks for units supported under 220% leads:
-    # - Vegto, Gogta, SSBE, Monke, Rice, Frank, Ultra Vegeta 1, Fishku, Cell Games,
-    # U7 Pawn, U6 Pawn, KFC, Serious Tao, Blue Balls, Rosemasu, Gogta 4, Omeger Shawn
-    if ((("Earth-Protecting Heroes" in characterKit.categories or 
-    "Fused Fighters" in characterKit.categories or
-    "Pure Saiyans" in characterKit.categories) and
-    ("Earth-Bred Fighters" in characterKit.categories or
-    "Potara" in characterKit.categories)) or 
-    (("Successors" in characterKit.categories or 
-    "Fused Fighters" in characterKit.categories or
-    "Pure Saiyans" in characterKit.categories) and
-    ("Gifted Warriors" in characterKit.categories or
-    "Fusion" in characterKit.categories)) or 
-    (("Transformation Boost" in characterKit.categories or 
-    "Gifted Warriors" in characterKit.categories) and
-    ("Power Beyond Super Saiyan" in characterKit.categories)) or
-    (("DB Saga" in characterKit.categories or 
-    "Earth-Bred Fighters" in characterKit.categories) and
-    ("Youth" in characterKit.categories) or
-    ("Dragon Ball Seekers" in characterKit.categories)) or 
-    (("Tournament Participants" in characterKit.categories or 
-    "Worldwide Chaos" in characterKit.categories) and
-    ("Androids" in characterKit.categories) or
-    ("Accelerated Battle" in characterKit.categories)) or
-    (("Representatives of Universe 7" in characterKit.categories or 
-    "Full Power" in characterKit.categories) and
-    ("Tournament Participants" in characterKit.categories) or
-    ("Super Heroes" in characterKit.categories)) or
-    (("Universe 6" in characterKit.categories or 
-    "Rapid Growth" in characterKit.categories or 
-    "Accelerated Battle" in characterKit.categories) and
-    ("Tournament Participants" in characterKit.categories)) or
-    (("Mission Execution" in characterKit.categories or 
-    "Earth-Bred Fighters" in characterKit.categories) and
-    ("Dragon Ball Seekers" in characterKit.categories) or
-    ("Earthlings" in characterKit.categories)) or
-    (("Future Saga" in characterKit.categories or 
-    "Fused Fighters" in characterKit.categories) and
-    ("Bond of Parent and Child" in characterKit.categories or
-    "Final Trump Card" in characterKit.categories)) or 
-    (("Inhuman Deeds" in characterKit.categories or 
-    "Power Absorption" in characterKit.categories or 
-    "GT Bosses" in characterKit.categories) and
-    ("Shadow Dragon Saga" in characterKit.categories or
-    "Worldwide Chaos" in characterKit.categories or
-    "Battle of Fate" in characterKit.categories)) or 
-    (("Hybrid Saiyans" in characterKit.categories or 
-    "Youth" in characterKit.categories or 
-    "Defenders of Justice" in characterKit.categories) and
-    ("Sibling's Bond" in characterKit.categories or
-    "Bond of Parent and Child" in characterKit.categories or
-    "Bond of Friendship" in characterKit.categories)) or 
-    (("Movie Heroes" in characterKit.categories or 
-    "Movie Bosses" in characterKit.categories) and
-    ("Transformation Boost" in characterKit.categories or
-    "Gifted Warriors" in characterKit.categories or
-    "Inhuman Deeds" in characterKit.categories)) or
-    "Universe Survival Saga" in characterKit.categories or 
-    "Giant Ape Power" in characterKit.categories or
-    "Full Power" in characterKit.categories or 
-    "Battle of Fate" in characterKit.categories or
-    "Universe 6" in characterKit.categories or
-    "Super Bosses" in characterKit.categories or
-    "GT Heroes" in characterKit.categories or
-    "Exploding Rage" in characterKit.categories):
-        lead = 5.4
-    totalBuff[0] = int(totalBuff[0]*lead) # Apply leader skill
-    totalBuff[1] = int(totalBuff[1]*lead) # Apply leader skill
-    print(f'| {totalBuff[0]} | {totalBuff[1]} | (With Duo {int(((lead-1)*100)/2)}% Leader Skill)')
-    
-    """Collects the names of all checked items."""
-    '''checked_items = []
-    for i, var in enumerate(atkdefVars):
-        #if var.get() == 1:
-            # ATK += onAttackStat[0][i][1]
-            # DEF += onAttackStat[0][i][1]
-        #    checked_items.append(condSoTStat[0][i])
-    for i, var in enumerate(atkVars):
-        #if var.get() == 1:
-            # ATK += onAttackStat[0][i][1]
-        #    checked_items.append(condSoTStat[1][i])
-    for i, var in enumerate(defVars):
-        #if var.get() == 1:
-            # DEF += onAttackStat[0][i][1]
-        #    checked_items.append(condSoTStat[2][i])'''
-    newBuff = [int(totalBuff[0] * (1 + (atkPerBuff/100))), int(totalBuff[1] * (1 + (defPerBuff/100)))] # Apply SoT percentage buffs
-    print(f'| {newBuff[0]} | {newBuff[1]} | (With {atkPerBuff}%/{defPerBuff}% Passive Buff)')
-    newBuff[0] += int(atkFlatBuff) # Apply SoT flat buffs
-    newBuff[1] += int(defFlatBuff) # Apply SoT flat buffs
-    print(f'| {newBuff[0]} | {newBuff[1]} | (With {atkFlatBuff}/{defFlatBuff} Flat Passive Buff)')
-    newBuff[0] = int(newBuff[0] * (1 + (linkBuffs[0]/100))) # Apply link buffs
-    newBuff[1] = int(newBuff[1] * (1 + (linkBuffs[1]/100))) # Apply link buffs
-    print(f'| {newBuff[0]} | {newBuff[1]} | (With {linkBuffs[0]}%/{linkBuffs[1]}% Link Skill Buff)')
-    
-    calcActiveStat(characterKit, newBuff, onAttackStat, crit, superEffective, additional)
-    return
+    calcDomainStat(characterKit, totalBuff, onAttackStat, checkAttack, crit, superEffective, additional)
 
 def findCond(characterKit, dbOutput, cond):
     if not cond:
@@ -686,387 +593,10 @@ def findCond(characterKit, dbOutput, cond):
         case 64: return ''
         case 65: return ''
         case 66: return ''
-
-# Read through kit, sepearate lines based on activiation condition (SoT vs. 'on attack')
-# Then, calculate SoT attack and conditional SoT attack  
-def calculateMain(characterKit, dbCursor, atkLinkBuffs, defLinkBuffs, crit):   
-    passive_skill_set_id = characterKit.passive_skill_set_id
-    atkPerBuff = 0
-    defPerBuff = 0
-    atkFlatBuff = 0
-    defFlatBuff = 0
-    condSoTATK = []
-    condSoTATKDEF = []
-    condSoTDEF = []
-    onAttackATK = []
-    onAttackATKDEF = []
-    onAttackDEF = []
-    additional = 0
-    superEffective = False
-    
-    if characterKit.rarity == 'UR' or characterKit.rarity == 'LR':
-        additional += 1
-    
-    if characterKit.passive_skill_set_id:
-        while True:
-            dbCursor.execute(f'''SELECT * FROM passive_skills where id = {passive_skill_set_id}''')
-            dbOutput = dbCursor.fetchall()
-            if len(dbOutput) == 0:
-                break
-            
-            # Skips enemy debuffs and (self excluded)
-            if (dbOutput[0][4] == 3 or dbOutput[0][4] == 4 or
-            dbOutput[0][4] == 14 or dbOutput[0][4] == 15 or
-            dbOutput[0][4] == 16):
-                passive_skill_set_id += 1000000
-                continue
-            # Recovery, Ki raise, damage reduction, guard, type Ki, dodge, nullification
-            elif (dbOutput[0][3] == 4 or dbOutput[0][3] == 5 or
-            dbOutput[0][3] == 13 or dbOutput[0][3] == 20 or
-            dbOutput[0][3] == 51 or dbOutput[0][3] == 67 or
-            dbOutput[0][3] == 78 or dbOutput[0][3] == 83 or
-            dbOutput[0][3] == 91 or dbOutput[0][3] == 92 or
-            dbOutput[0][3] == 110 or dbOutput[0][3] == 119):
-                passive_skill_set_id += 1000000
-                continue
-            # Domain Skill via passive (LR Future Gohan, STR Slug, STR Cell)
-            elif dbOutput[0][3] == 0:
-                dbCursor.execute(f'''SELECT * FROM dokkan_field_passive_skill_relations where passive_skill_id = {dbOutput[0][0]}''')
-                domainOutput = dbCursor.fetchall()    
-                characterKit.dokkan_fields = domainOutput[0][1]
-                passive_skill_set_id += 1000000
-                continue
-            
-            if dbOutput[0][4] == 2 and dbOutput[0][5] != 0:
-                dbCursor.execute(f'''SELECT * FROM sub_target_types where sub_target_type_set_id = {dbOutput[0][5]}''')
-                supportOutput = dbCursor.fetchall()
-                dbCursor.execute(f'''SELECT * FROM card_categories where id = {supportOutput[0][3]}''')
-                supportOutput2 = dbCursor.fetchall()
-                # Skips support passives that don't apply to character (LR Babidi & Dabura)
-                if supportOutput2[0][1] not in characterKit.categories:
-                    passive_skill_set_id += 1000000
-                    continue
-                
-            cond = ''
-            stat = 0
-            if dbOutput[0][11]:
-                id = ''
-                for character in dbOutput[0][11][dbOutput[0][11].find(': "')+3:dbOutput[0][11].find('",')]:
-                    if character == ')':
-                        line = findCond(characterKit, dbOutput, id)
-                        cond += line + ')'
-                        id = ''
-                    elif character == '(':
-                        line = findCond(characterKit, dbOutput, id)
-                        cond += '(' + line
-                        id = ''
-                    elif character == '|':
-                        line = findCond(characterKit, dbOutput, id)
-                        cond += line + ' OR '
-                        id = ''
-                    elif character == '&':
-                        line = findCond(characterKit, dbOutput, id)
-                        cond += line + ' AND '
-                        id = ''
-                    else:
-                        id += character
-                line = findCond(characterKit, dbOutput, id)
-                cond += line
-            if cond.__contains__('57'):
-                passive_skill_set_id += 1000000
-                continue
-                
-            prob = 100
-            # If line doesn't have a 100% chance to activate
-            if dbOutput[0][10] != 100:
-                prob = dbOutput[0][10]
-            turn = dbOutput[0][8]
-            
-            cond2 = ''
-            match dbOutput[0][3]:
-                case 1 | 16 | 59: stat = 1 # ATK
-                case 2 | 60: stat = 2 # DEF
-                case 3 | 61: stat = 0 # ATK & DEF
-                case 68:
-                    if dbOutput[0][13] == 1: stat = 1
-                    elif dbOutput[0][13] == 3: stat = 2
-                    else:
-                        passive_skill_set_id += 1000000
-                        continue
-                case 71: 
-                    if not cond2:
-                        cond2 = 'The more HP remaining'
-                    else:
-                        cond2 = 'The more HP remaining, '
-                    stat = 1
-                case 76:
-                    superEffective = True
-                    passive_skill_set_id += 1000000
-                    continue
-                case 79 | 103:
-                    characterKit.transformation = dbOutput[0][12]
-                    passive_skill_set_id += 1000000
-                    continue
-                case 81:
-                    additional += 1
-                    passive_skill_set_id += 1000000
-                    continue
-                case 90:
-                    crit = True
-                    passive_skill_set_id += 1000000
-                    continue
-                case 98:
-                    if not cond2:
-                        cond2 = '# actions performed'
-                    else:
-                        cond2 = ', # actions performed'
-                    match dbOutput[0][14]:
-                        case 0:
-                            stat = 1
-                        case 1:
-                            stat = 2
-                        case _:
-                            crit = True
-                            passive_skill_set_id += 1000000
-                            continue
-                #case 120 | 128:
-                    #onAttackATK.append(['Counter', dbOutput[0][12], dbOutput[0][13], dbOutput[0][7], dbOutput[0][2], dbOutput[0][10]])
-                    #passive_skill_set_id += 1000000
-                    #continue
-            
-            if not dbOutput[0][2] == 1:
-                if not cond2:
-                    cond2 = 'When attacking'
-                else:
-                    cond2 += ', when attacking'
-                    
-            if dbOutput[0][3] == 61:
-                if not cond2:
-                    cond2 = '# Ki Spheres obtained'
-                else:
-                    cond2 += ', # Ki Spheres obtained'
-            elif dbOutput[0][3] == 68:
-                match dbOutput[0][12]:
-                    case 1:
-                        if not cond2:
-                            cond2 = '# AGL Ki Spheres obtained'
-                        else:
-                            cond2 += ', # AGL Ki Spheres obtained'
-                    case 2:
-                        if not cond2:
-                            cond2 = '# TEQ Ki Spheres obtained'
-                        else:
-                            cond2 += ', # TEQ Ki Spheres obtained'
-                    case 4:
-                        if not cond2:
-                            cond2 = '# INT Ki Spheres obtained'
-                        else:
-                            cond2 += ', # INT Ki Spheres obtained'
-                    case 8:
-                        if not cond2:
-                            cond2 = '# STR Ki Spheres obtained'
-                        else:
-                            cond2 += ', # STR Ki Spheres obtained'
-                    case 16:
-                        if not cond2:
-                            cond2 = '# PHY Ki Spheres obtained'
-                        else:
-                            cond2 += ', # PHY Ki Spheres obtained'
-            
-            if dbOutput[0][9] == 1:
-                if not cond2:
-                    cond2 = 'Once only'
-                else:
-                    cond2 += ', once only'
-            
-            # If class buff and character not in class
-            if ((dbOutput[0][4] == 12 and characterKit.awakening_element_type != 'Super') or
-            (dbOutput[0][4] == 13 and characterKit.awakening_element_type != 'Extreme')):
-                passive_skill_set_id += 1000000
-                continue 
-            # If type buff and character is not in type
-            elif ((dbOutput[0][3] == 16 or dbOutput[0][3] == 17 or dbOutput[0][3] == 18) and
-            ((dbOutput[0][12] == 0 and characterKit.element != 'AGL') or
-            (dbOutput[0][12] == 1 and characterKit.element != 'TEQ') or
-            (dbOutput[0][12] == 2 and characterKit.element != 'INT') or
-            (dbOutput[0][12] == 3 and characterKit.element != 'STR') or
-            (dbOutput[0][12] == 4 and characterKit.element != 'PHY'))):
-                passive_skill_set_id += 1000000
-                continue
-            
-            if not cond and prob == 100 and dbOutput[0][2] == 1 and not cond2:
-                match stat:
-                    case 0:
-                        if dbOutput[0][3] == 18:
-                            if dbOutput[0][7] == 0: # Flat ATK & DEF raise
-                                atkFlatBuff += dbOutput[0][13]
-                                defFlatBuff += dbOutput[0][14]
-                            elif dbOutput[0][7] == 1: # Flat ATK & DEF lower
-                                atkFlatBuff -= dbOutput[0][13]
-                                defFlatBuff += dbOutput[0][14]
-                            elif dbOutput[0][7] == 2: # Percent ATK & DEF raise
-                                atkPerBuff += dbOutput[0][13]
-                                defPerBuff += dbOutput[0][14]
-                            elif dbOutput[0][7] == 3: # Percent ATK & DEF lower
-                                atkPerBuff -= dbOutput[0][13]
-                                defPerBuff += dbOutput[0][14]
-                        elif dbOutput[0][3] == 82:
-                            if dbOutput[0][7] == 0: # Flat ATK & DEF raise
-                                atkFlatBuff += dbOutput[0][13]
-                                defFlatBuff += dbOutput[0][13]
-                            elif dbOutput[0][7] == 1: # Flat ATK & DEF lower
-                                atkFlatBuff -= dbOutput[0][13]
-                                defFlatBuff += dbOutput[0][13]
-                            elif dbOutput[0][7] == 2: # Percent ATK & DEF raise
-                                atkPerBuff += dbOutput[0][13]
-                                defPerBuff += dbOutput[0][13]
-                            elif dbOutput[0][7] == 3: # Percent ATK & DEF lower
-                                atkPerBuff -= dbOutput[0][13]
-                                defPerBuff += dbOutput[0][13]
-                        else:
-                            if dbOutput[0][7] == 0: # Flat ATK & DEF raise
-                                atkFlatBuff += dbOutput[0][12]
-                                defFlatBuff += dbOutput[0][13]
-                            elif dbOutput[0][7] == 1: # Flat ATK & DEF lower
-                                atkFlatBuff -= dbOutput[0][12]
-                                defFlatBuff += dbOutput[0][13]
-                            elif dbOutput[0][7] == 2: # Percent ATK & DEF raise
-                                atkPerBuff += dbOutput[0][12]
-                                defPerBuff += dbOutput[0][13]
-                            elif dbOutput[0][7] == 3: # Percent ATK & DEF lower
-                                atkPerBuff -= dbOutput[0][12]
-                                defPerBuff += dbOutput[0][13]
-                    case 1:
-                        if dbOutput[0][3] == 16:
-                            if dbOutput[0][7] == 0: # Flat ATK raise
-                                atkFlatBuff += dbOutput[0][13]
-                            elif dbOutput[0][7] == 1: # Flat ATK lower
-                                atkFlatBuff -= dbOutput[0][13]
-                            elif dbOutput[0][7] == 2: # Percent ATK raise
-                                atkPerBuff += dbOutput[0][13]
-                            elif dbOutput[0][7] == 3: # Percent ATK lower
-                                atkPerBuff -= dbOutput[0][13]
-                        # Normal SoT Buffs
-                        else:
-                            if dbOutput[0][7] == 0: # Flat ATK raise
-                                atkFlatBuff += dbOutput[0][12]
-                            elif dbOutput[0][7] == 1: # Flat ATK lower
-                                atkFlatBuff -= dbOutput[0][12]
-                            elif dbOutput[0][7] == 2: # Percent ATK raise
-                                atkPerBuff += dbOutput[0][12]
-                            elif dbOutput[0][7] == 3: # Percent ATK lower
-                                atkPerBuff -= dbOutput[0][12]
-                    case 2:
-                        if dbOutput[0][7] == 0: # Flat DEF raise
-                            defFlatBuff += dbOutput[0][12]
-                        elif dbOutput[0][7] == 1: # Flat DEF lower
-                            defFlatBuff -= dbOutput[0][12]
-                        elif dbOutput[0][7] == 2: # Percent DEF raise
-                            defPerBuff += dbOutput[0][12]
-                        elif dbOutput[0][7] == 3: # Percent DEF lower
-                            defPerBuff -= dbOutput[0][12]
-            else:
-                match dbOutput[0][2]:
-                    case 1:
-                        if dbOutput[0][3] == 18:
-                            match stat:
-                                case 0: condSoTATKDEF.append([f'{cond} ({cond2}) ({prob}% chance) (For {turn} turn(s))', dbOutput[0][13], dbOutput[0][14], dbOutput[0][7]])
-                                case 1: condSoTATK.append([f'{cond} ({cond2}) ({prob}% chance) (For {turn} turn(s))', dbOutput[0][13], dbOutput[0][14], dbOutput[0][7]])
-                                case 2: condSoTDEF.append([f'{cond} ({cond2}) ({prob}% chance) (For {turn} turn(s))', dbOutput[0][13], dbOutput[0][14], dbOutput[0][7]])
-                        elif dbOutput[0][3] == 68:
-                            match stat:
-                                case 1: condSoTATK.append([f'{cond} ({cond2}) ({prob}% chance) (For {turn} turn(s))', dbOutput[0][14], 0, dbOutput[0][7]])
-                                case 2: condSoTDEF.append([f'{cond} ({cond2}) ({prob}% chance) (For {turn} turn(s))', dbOutput[0][14], 0, dbOutput[0][7]])
-                        else:
-                            match stat:
-                                case 0: condSoTATKDEF.append([f'{cond} ({cond2}) ({prob}% chance) (For {turn} turn(s))', dbOutput[0][12], dbOutput[0][13], dbOutput[0][7]])
-                                case 1: condSoTATK.append([f'{cond} ({cond2}) ({prob}% chance) (For {turn} turn(s))', dbOutput[0][12], dbOutput[0][13], dbOutput[0][7]])
-                                case 2: condSoTDEF.append([f'{cond} ({cond2}) ({prob}% chance) (For {turn} turn(s))', dbOutput[0][12], dbOutput[0][13], dbOutput[0][7]])
-                    case _:
-                        if dbOutput[0][3] == 18:
-                            match stat:
-                                case 0: onAttackATKDEF.append([f'{cond} ({cond2}) ({prob}% chance) (For {turn} turn(s))', dbOutput[0][13], dbOutput[0][14], dbOutput[0][7]])
-                                case 1: onAttackATK.append([f'{cond} ({cond2}) ({prob}% chance) (For {turn} turn(s))', dbOutput[0][13], dbOutput[0][14], dbOutput[0][7]])
-                                case 2: onAttackDEF.append([f'{cond} ({cond2}) ({prob}% chance) (For {turn} turn(s))', dbOutput[0][13], dbOutput[0][14], dbOutput[0][7]])
-                        elif dbOutput[0][3] == 68:
-                            match stat:
-                                case 1: onAttackATK.append([f'{cond} ({cond2}) ({prob}% chance) (For {turn} turn(s))', dbOutput[0][14], 0, dbOutput[0][7]])
-                                case 2: onAttackDEF.append([f'{cond} ({cond2}) ({prob}% chance) (For {turn} turn(s))', dbOutput[0][14], 0, dbOutput[0][7]])
-                        else:
-                            match stat:
-                                case 0: onAttackATKDEF.append([f'{cond} ({cond2}) ({prob}% chance) (For {turn} turn(s))', dbOutput[0][12], dbOutput[0][13], dbOutput[0][7]])
-                                case 1: onAttackATK.append([f'{cond} ({cond2}) ({prob}% chance) (For {turn} turn(s))', dbOutput[0][12], dbOutput[0][13], dbOutput[0][7]])
-                                case 2: onAttackDEF.append([f'{cond} ({cond2}) ({prob}% chance) (For {turn} turn(s))', dbOutput[0][12], dbOutput[0][13], dbOutput[0][7]])
-            passive_skill_set_id += 1000000
-    
-    condSoTStat = [condSoTATKDEF, condSoTATK, condSoTDEF]
-    onAttackStat = [onAttackATKDEF, onAttackATK, onAttackDEF]
-    totalBuff = [characterKit.atk_max, characterKit.def_max]
-    linkBuffs = [atkLinkBuffs, defLinkBuffs]
-    
-    # Create six individual panels within the bottom frame
-    ATKDEFFrame = tk.Frame(root, highlightbackground="black", highlightthickness=1, bg="lightblue")
-    ATKDEFFrame.grid(row=8, column=0, padx=5, pady=5)
-    ATKFrame = tk.Frame(root, highlightbackground="black", highlightthickness=1, bg="lightgreen")
-    ATKFrame.grid(row=8, column=1, padx=5, pady=5)
-    DEFFrame = tk.Frame(root, highlightbackground="black", highlightthickness=1, bg="lightcoral")
-    DEFFrame.grid(row=8, column=2, padx=5, pady=5)
-    ATKDEFFrame2 = tk.Frame(root, highlightbackground="black", highlightthickness=1, bg="lightblue")
-    ATKDEFFrame2.grid(row=9, column=0, padx=5, pady=5)
-    ATKFrame2 = tk.Frame(root, highlightbackground="black", highlightthickness=1, bg="lightgreen")
-    ATKFrame2.grid(row=9, column=1, padx=5, pady=5)
-    DEFFrame2 = tk.Frame(root, highlightbackground="black", highlightthickness=1, bg="lightcoral")
-    DEFFrame2.grid(row=9, column=2, padx=5, pady=5)
-    
-    # Clears all stat frames
-    for widget in ATKDEFFrame.winfo_children():
-        widget.destroy()
-    ATKDEFFrame.pack_forget()
-    for widget in ATKFrame.winfo_children():
-        widget.destroy()
-    ATKFrame.pack_forget()
-    for widget in DEFFrame.winfo_children():
-        widget.destroy()
-    DEFFrame.pack_forget()
-    for widget in ATKDEFFrame2.winfo_children():
-        widget.destroy()
-    ATKDEFFrame2.pack_forget()
-    for widget in ATKFrame2.winfo_children():
-        widget.destroy()
-    ATKFrame2.pack_forget()
-    for widget in DEFFrame2.winfo_children():
-        widget.destroy()
-    DEFFrame2.pack_forget()
-    
-    for line in condSoTATKDEF:
-        checkbox = tk.Checkbutton(ATKDEFFrame, text=line[0], variable=line, command=lambda: checkCond(characterKit, totalBuff, condSoTStat, atkPerBuff, defPerBuff, atkFlatBuff, defFlatBuff, linkBuffs, onAttackStat, crit, superEffective, additional))
-        checkbox.pack(anchor=W)
-    for line in condSoTATK:
-        checkbox = tk.Checkbutton(ATKFrame, text=line[0], variable=line, command=lambda: checkCond(characterKit, totalBuff, condSoTStat, atkPerBuff, defPerBuff, atkFlatBuff, defFlatBuff, linkBuffs, onAttackStat, crit, superEffective, additional))
-        checkbox.pack(anchor=W)
-    for line in condSoTDEF:
-        checkbox = tk.Checkbutton(DEFFrame, text=line[0], variable=line, command=lambda: checkCond(characterKit, totalBuff, condSoTStat, atkPerBuff, defPerBuff, atkFlatBuff, defFlatBuff, linkBuffs, onAttackStat, crit, superEffective, additional))
-        checkbox.pack(anchor=W)
-    for line in onAttackATKDEF:
-        checkbox = tk.Checkbutton(ATKDEFFrame2, text=line[0], variable=line, command=lambda: checkCond(characterKit, totalBuff, condSoTStat, atkPerBuff, defPerBuff, atkFlatBuff, defFlatBuff, linkBuffs, onAttackStat, crit, superEffective, additional))
-        checkbox.pack(anchor=W)
-    for line in onAttackATK:
-        checkbox = tk.Checkbutton(ATKFrame2, text=line[0], variable=line, command=lambda: checkCond(characterKit, totalBuff, condSoTStat, atkPerBuff, defPerBuff, atkFlatBuff, defFlatBuff, linkBuffs, onAttackStat, crit, superEffective, additional))
-        checkbox.pack(anchor=W)
-    for line in onAttackDEF:
-        checkbox = tk.Checkbutton(DEFFrame2, text=line[0], variable=line, command=lambda: checkCond(characterKit, totalBuff, condSoTStat, atkPerBuff, defPerBuff, atkFlatBuff, defFlatBuff, linkBuffs, onAttackStat, crit, superEffective, additional))
-        checkbox.pack(anchor=W)
-    
-    print(characterKit.name)
-    print(f"Initial percent buffs: {atkPerBuff}% ATK, {defPerBuff}% DEF")
-    print(f"Initial flat buffs: {atkFlatBuff} ATK, {defFlatBuff} DEF\n")
-    checkCond(characterKit, totalBuff, condSoTStat, atkPerBuff, defPerBuff, atkFlatBuff, defFlatBuff, linkBuffs, onAttackStat, crit, superEffective, additional)
     
 # Read through kit, sepearate lines based on activiation condition (SoT vs. 'on attack')
 # Then, calculate SoT defense and conditional SoT defense  
-def calculateLinks(characterKit, partnerKit, dbCursor):
-    os.system('cls')
-        
+def calculateLinks(characterKit, dbCursor, partnerID, crit):   
     # Find all shared links
     shared = False
     kiLinkBuffs = 0
@@ -1077,7 +607,8 @@ def calculateLinks(characterKit, partnerKit, dbCursor):
     damageReduceLinkBuffs = 0
     recoveryLinkBuffs = 0
     defLinkDebuffs = 0
-    crit = False
+    
+    partnerKit = getPartnerKit(partnerID)
     if (characterKit.name != partnerKit.name or
     (int(partnerKit.id) >= 4000000 and characterKit.id != partnerKit.id)):
         for sharedLink in characterKit.card_links:
@@ -1117,36 +648,139 @@ def calculateLinks(characterKit, partnerKit, dbCursor):
                             critLinkBuffs += int(linkBuff[11])
                         case 91:
                             evadeLinkBuffs += int(linkBuff[11])
-    else:
-        # linkLabel = tk.Label(root, text='Unit cannot link with partner (Shared name)')
-        #if not partneridEntry.get():
-            # linkLabel = tk.Label(root, text='No partner linked')
-        # linkLabel.grid(row=0, column=1, padx=5, pady=5)
-        calculateMain(characterKit, dbCursor, 0, 0, False)
-        return
-
-    if not shared:
-        # linkLabel = tk.Label(root, text='Unit cannot link with partner (No shared links)')
-        # linkLabel.grid(row=0, column=1, padx=5, pady=5)
-        calculateMain(characterKit, dbCursor, 0, 0, False)
-        return
-    else:
-        # linkLabel = tk.Label(root, text='\nTotal Link Buffs:')
-        # linkLabel.grid(row=0, column=1, padx=5, pady=5)
-        # linkLabel = tk.Label(root, text=f'- Ki +{str(kiLinkBuffs)}, ATK +{str(atkLinkBuffs)}%, DEF +{str(defLinkBuffs)}%')
-        # linkLabel.grid(row=0, column=1, padx=5, pady=5)
-        # linkLabel = tk.Label(root, text=f'- Chance of performing a critical hit +{str(critLinkBuffs)}%')
-        # linkLabel.grid(row=0, column=1, padx=5, pady=5)
-        # linkLabel = tk.Label(root, text=f"- Chance of evading enemy's attack +{evadeLinkBuffs}%")
-        # linkLabel.grid(row=0, column=1, padx=5, pady=5)
-        # linkLabel = tk.Label(root, text=f'- Damage reduction rate +{damageReduceLinkBuffs}%')
-        # linkLabel.grid(row=0, column=1, padx=5, pady=5)
-        # linkLabel = tk.Label(root, text=f'- Recovers {recoveryLinkBuffs}% HP')
-        # linkLabel.grid(row=0, column=1, padx=5, pady=5)
-        # linkLabel = tk.Label(root, text=f"- All enemies' DEF -{defLinkDebuffs}%")
-        # linkLabel.grid(row=0, column=1, padx=5, pady=5)
-        
-        calculateMain(characterKit, dbCursor, atkLinkBuffs, defLinkBuffs, crit)
+    return [atkLinkBuffs, defLinkBuffs]
+   
+# Read through kit, sepearate lines based on activiation condition (SoT vs. 'on attack')
+# Then, calculate SoT attack and conditional SoT attack  
+def calculateMain2(characterKit, dbCursor, perBuff, flatBuff, condSoTStat, checkSoT, partnerID, onAttackStat, checkAttack, crit, superEffective, additional):   
+    os.system('cls')
+    totalBuff = [characterKit.atk_max, characterKit.def_max]
+    perBuff2 = [0, 0]
+    flatBuff2 = [0, 0]
+    print(characterKit.name)
+    print(f"Initial percent buffs: {perBuff[0]}% ATK, {perBuff[1]}% DEF")
+    print(f"Initial flat buffs: {flatBuff[0]} ATK, {flatBuff[1]} DEF\n")
+    
+    # Dev Note: Fix Whitespace spacing
+    print('| ATK | DEF |')
+    print('-------------')
+    print(f'| {totalBuff[0]} | {totalBuff[1]} | (Base Stat)')
+    # Duo 200% lead by default
+    lead = 5
+    # Dev note: Temp condition, manually checks for units supported under 220% leads:
+    # - Vegto, Gogta, SSBE, Monke, Rice, Frank, Ultra Vegeta 1, Fishku, Cell Games,
+    # U7 Pawn, U6 Pawn, KFC, Serious Tao, Blue Balls, Rosemasu, Gogta 4, Omeger Shawn
+    if ((("Earth-Protecting Heroes" in characterKit.categories or 
+    "Fused Fighters" in characterKit.categories or
+    "Pure Saiyans" in characterKit.categories) and
+    ("Earth-Bred Fighters" in characterKit.categories or
+    "Potara" in characterKit.categories)) or 
+    (("Successors" in characterKit.categories or 
+    "Fused Fighters" in characterKit.categories or
+    "Pure Saiyans" in characterKit.categories) and
+    ("Gifted Warriors" in characterKit.categories or
+    "Fusion" in characterKit.categories)) or 
+    (("Transformation Boost" in characterKit.categories or 
+    "Gifted Warriors" in characterKit.categories) and
+    ("Power Beyond Super Saiyan" in characterKit.categories)) or
+    (("DB Saga" in characterKit.categories or 
+    "Earth-Bred Fighters" in characterKit.categories) and
+    ("Youth" in characterKit.categories) or
+    ("Dragon Ball Seekers" in characterKit.categories)) or 
+    (("Tournament Participants" in characterKit.categories or 
+    "Worldwide Chaos" in characterKit.categories) and
+    ("Androids" in characterKit.categories) or
+    ("Accelerated Battle" in characterKit.categories)) or
+    (("Representatives of Universe 7" in characterKit.categories or 
+    "Full Power" in characterKit.categories) and
+    ("Tournament Participants" in characterKit.categories) or
+    ("Super Heroes" in characterKit.categories)) or
+    (("Universe 6" in characterKit.categories or 
+    "Rapid Growth" in characterKit.categories or 
+    "Accelerated Battle" in characterKit.categories) and
+    ("Tournament Participants" in characterKit.categories)) or
+    (("Mission Execution" in characterKit.categories or 
+    "Earth-Bred Fighters" in characterKit.categories) and
+    ("Dragon Ball Seekers" in characterKit.categories) or
+    ("Earthlings" in characterKit.categories)) or
+    (("Future Saga" in characterKit.categories or 
+    "Fused Fighters" in characterKit.categories) and
+    ("Bond of Parent and Child" in characterKit.categories or
+    "Final Trump Card" in characterKit.categories)) or 
+    (("Inhuman Deeds" in characterKit.categories or 
+    "Power Absorption" in characterKit.categories or 
+    "GT Bosses" in characterKit.categories) and
+    ("Shadow Dragon Saga" in characterKit.categories or
+    "Worldwide Chaos" in characterKit.categories or
+    "Battle of Fate" in characterKit.categories)) or 
+    (("Hybrid Saiyans" in characterKit.categories or 
+    "Youth" in characterKit.categories or 
+    "Defenders of Justice" in characterKit.categories) and
+    ("Sibling's Bond" in characterKit.categories or
+    "Bond of Parent and Child" in characterKit.categories or
+    "Bond of Friendship" in characterKit.categories)) or 
+    (("Movie Heroes" in characterKit.categories or 
+    "Movie Bosses" in characterKit.categories) and
+    ("Transformation Boost" in characterKit.categories or
+    "Gifted Warriors" in characterKit.categories or
+    "Inhuman Deeds" in characterKit.categories)) or
+    "Universe Survival Saga" in characterKit.categories or 
+    "Giant Ape Power" in characterKit.categories or
+    "Full Power" in characterKit.categories or 
+    "Battle of Fate" in characterKit.categories or
+    "Universe 6" in characterKit.categories or
+    "Super Bosses" in characterKit.categories or
+    "GT Heroes" in characterKit.categories or
+    "Exploding Rage" in characterKit.categories):
+        lead = 5.4
+    totalBuff[0] = int(totalBuff[0]*lead) # Apply leader skill
+    totalBuff[1] = int(totalBuff[1]*lead) # Apply leader skill
+    print(f'| {totalBuff[0]} | {totalBuff[1]} | (With Duo {int(((lead-1)*100)/2)}% Leader Skill)')
+    
+    # Collects the names of all checked items.
+    for i, check in enumerate(checkSoT[0]):
+        if check.get():
+            match condSoTStat[0][i][3]:
+                case 0:
+                    flatBuff2[0] += condSoTStat[0][i][1]
+                    flatBuff2[1] += condSoTStat[0][i][2]
+                case 1:
+                    flatBuff2[0] -= condSoTStat[0][i][1]
+                    flatBuff2[1] -= condSoTStat[0][i][2]
+                case 2:
+                    perBuff2[0] += condSoTStat[0][i][1]
+                    perBuff2[1] += condSoTStat[0][i][2]
+                case 3:
+                    perBuff2[0] -= condSoTStat[0][i][1]
+                    perBuff2[1] -= condSoTStat[0][i][2]
+    for i, check in enumerate(checkSoT[1]):
+        if check.get():
+            match condSoTStat[1][i][3]:
+                case 0: flatBuff2[0] += condSoTStat[1][i][1]
+                case 1: flatBuff2[0] -= condSoTStat[1][i][1]
+                case 2: perBuff2[0] += condSoTStat[1][i][1]
+                case 3: perBuff2[0] -= condSoTStat[1][i][1]
+    for i, check in enumerate(checkSoT[2]):
+        if check.get():
+            match condSoTStat[2][i][3]:
+                case 0: flatBuff2[1] += condSoTStat[2][i][1]
+                case 1: flatBuff2[1] -= condSoTStat[2][i][1]
+                case 2: perBuff2[1] += condSoTStat[2][i][1]
+                case 3: perBuff2[1] -= condSoTStat[2][i][1]
+    
+    totalBuff = [int(totalBuff[0] * (1 + ((perBuff[0]+perBuff2[0])/100))), int(totalBuff[1] * (1 + ((perBuff[1]+perBuff2[1])/100)))] # Apply 'on attack' percentage buffs
+    print(f"| {totalBuff[0]} | {totalBuff[1]} | (With {perBuff[0]+perBuff2[0]}%/{perBuff[1]+perBuff2[1]}% 'On Attack' Passive Buff)")
+    totalBuff[0] += int(flatBuff[0]+flatBuff2[0]) # Apply 'on attack' percent buffs
+    totalBuff[1] += int(flatBuff[1]+flatBuff2[1]) # Apply 'on attack' flat buffs
+    print(f"| {totalBuff[0]} | {totalBuff[1]} | (With {flatBuff[0]+flatBuff2[0]}/{flatBuff[1]+flatBuff2[1]} Flat 'On Attack' Passive Buff)")
+    
+    if partnerID and partnerID != characterKit.id:
+        linkBuffs = calculateLinks(characterKit, dbCursor, partnerID, crit)
+        totalBuff[0] = int(totalBuff[0] * (1 + (linkBuffs[0]/100))) # Apply link buffs
+        totalBuff[1] = int(totalBuff[1] * (1 + (linkBuffs[1]/100))) # Apply link buffs
+        print(f'| {totalBuff[0]} | {totalBuff[1]} | (With {linkBuffs[0]}%/{linkBuffs[1]}% Link Skill Buff)')
+    
+    calcActiveStat(characterKit, totalBuff, onAttackStat, checkAttack, crit, superEffective, additional)
    
 # Helper method to get all unit details
 def getPartnerKit(partnerID):
@@ -1155,7 +789,6 @@ def getPartnerKit(partnerID):
     partnerKit = Partner(partnerID, '', '', 0, [])
     
     dbCursor.execute(f'''SELECT * FROM cards where id = {partnerID}''')
-    print("Partner sucessfully loaded.")
     dbOutput = dbCursor.fetchall()
     
     partnerKit.name = dbOutput[0][1]
@@ -1193,8 +826,6 @@ def getPartnerKit(partnerID):
                         
     if partnerID >= 4000000:
         partnerKit.name += (' (<->)')
-            
-    os.system('cls')
     return partnerKit   
 
 # Helper method to get all unit details
@@ -1293,15 +924,12 @@ def getKit(characterID, dbCursor, EZA):
     dbCursor.execute(f'''SELECT * FROM card_specials where card_id = {characterID}''')
     dbOutput = dbCursor.fetchall()
     for special in dbOutput:
-        if EZA != 0:
-            ezaCursor = dbConnect.cursor()
-            ezaCursor.execute(f'''SELECT * FROM special_sets where id = {special[2]}''')
-            ezaOutput = ezaCursor.fetchall()
-            if EZA != 0 and ezaOutput[0][1].__contains__("Extreme"):
-                characterKit.specials.append(tuple([special[2], special[6], special[9], special[12]]))
-            elif EZA == 0 and not ezaOutput[0][1].__contains__("Extreme"):
-                characterKit.specials.append(tuple([special[2], special[6], special[9], special[12]]))
-        else:
+        ezaCursor = dbConnect.cursor()
+        ezaCursor.execute(f'''SELECT * FROM special_sets where id = {special[2]}''')
+        ezaOutput = ezaCursor.fetchall()
+        if EZA != 0 and ezaOutput[0][1].__contains__("(Extreme)"):
+            characterKit.specials.append(tuple([special[2], special[6], special[9], special[12]]))
+        elif EZA == 0 and not ezaOutput[0][1].__contains__("(Extreme)"):
             characterKit.specials.append(tuple([special[2], special[6], special[9], special[12]]))
     
     dbCursor.execute(f'''SELECT * FROM card_active_skills where card_id = {characterID}''')
@@ -1630,13 +1258,366 @@ def getKit(characterID, dbCursor, EZA):
     os.system('cls')
     return characterKit
 
-def debugMain(dbCursor):
-    dbCursor.execute(f'''SELECT * FROM cards''')
-    cards = dbCursor.fetchall()
-    for card in cards:
-        if card[0] % 2 == 0:
-            continue
-        main(card[0], dbCursor)
+def calculateMain(characterKit, dbCursor):
+    atkPerBuff = 0
+    defPerBuff = 0
+    atkFlatBuff = 0
+    defFlatBuff = 0
+    condSoTStat = [[], [], []]
+    checkSoT = [[], [], []]
+    onAttackStat = [[], [], []]
+    checkAttack = [[], [], []]
+    passive_skill_set_id = characterKit.passive_skill_set_id
+    
+    crit = False
+    superEffective = False
+    additional = 0
+    if characterKit.rarity == 'UR' or characterKit.rarity == 'LR':
+        additional += 1
+    
+    # Clears all stat frames
+    for widget in ATKDEFFrame.winfo_children():
+        widget.destroy()
+    ATKDEFFrame.pack_forget()
+    for widget in ATKFrame.winfo_children():
+        widget.destroy()
+    ATKFrame.pack_forget()
+    for widget in DEFFrame.winfo_children():
+        widget.destroy()
+    DEFFrame.pack_forget()
+    for widget in ATKDEFFrame2.winfo_children():
+        widget.destroy()
+    ATKDEFFrame2.pack_forget()
+    for widget in ATKFrame2.winfo_children():
+        widget.destroy()
+    ATKFrame2.pack_forget()
+    for widget in DEFFrame2.winfo_children():
+        widget.destroy()
+    DEFFrame2.pack_forget()
+    
+    if characterKit.passive_skill_set_id:
+        while True:
+            dbCursor.execute(f'''SELECT * FROM passive_skills where id = {passive_skill_set_id}''')
+            dbOutput = dbCursor.fetchall()
+            if len(dbOutput) == 0:
+                break
+            
+            # Skips enemy debuffs and (self excluded)
+            if (dbOutput[0][4] == 3 or dbOutput[0][4] == 4 or
+            dbOutput[0][4] == 14 or dbOutput[0][4] == 15 or
+            dbOutput[0][4] == 16):
+                passive_skill_set_id += 1000000
+                continue
+            # Recovery, Ki raise, damage reduction, guard, type Ki, dodge, nullification
+            elif (dbOutput[0][3] == 4 or dbOutput[0][3] == 5 or
+            dbOutput[0][3] == 13 or dbOutput[0][3] == 20 or
+            dbOutput[0][3] == 51 or dbOutput[0][3] == 67 or
+            dbOutput[0][3] == 78 or dbOutput[0][3] == 83 or
+            dbOutput[0][3] == 91 or dbOutput[0][3] == 92 or
+            dbOutput[0][3] == 110 or dbOutput[0][3] == 119):
+                passive_skill_set_id += 1000000
+                continue
+            # Domain Skill via passive (LR Future Gohan, STR Slug, STR Cell)
+            elif dbOutput[0][3] == 0:
+                dbCursor.execute(f'''SELECT * FROM dokkan_field_passive_skill_relations where passive_skill_id = {dbOutput[0][0]}''')
+                domainOutput = dbCursor.fetchall()    
+                characterKit.dokkan_fields = domainOutput[0][1]
+                passive_skill_set_id += 1000000
+                continue
+            
+            if dbOutput[0][4] == 2 and dbOutput[0][5] != 0:
+                dbCursor.execute(f'''SELECT * FROM sub_target_types where sub_target_type_set_id = {dbOutput[0][5]}''')
+                supportOutput = dbCursor.fetchall()
+                dbCursor.execute(f'''SELECT * FROM card_categories where id = {supportOutput[0][3]}''')
+                supportOutput2 = dbCursor.fetchall()
+                # Skips support passives that don't apply to character (LR Babidi & Dabura)
+                if supportOutput2[0][1] not in characterKit.categories:
+                    passive_skill_set_id += 1000000
+                    continue
+                
+            cond = ''
+            stat = 0
+            if dbOutput[0][11]:
+                id = ''
+                for character in dbOutput[0][11][dbOutput[0][11].find(': "')+3:dbOutput[0][11].find('",')]:
+                    if character == ')':
+                        line = findCond(characterKit, dbOutput, id)
+                        cond += line + ')'
+                        id = ''
+                    elif character == '(':
+                        line = findCond(characterKit, dbOutput, id)
+                        cond += '(' + line
+                        id = ''
+                    elif character == '|':
+                        line = findCond(characterKit, dbOutput, id)
+                        cond += line + ' OR '
+                        id = ''
+                    elif character == '&':
+                        line = findCond(characterKit, dbOutput, id)
+                        cond += line + ' AND '
+                        id = ''
+                    else:
+                        id += character
+                line = findCond(characterKit, dbOutput, id)
+                cond += line
+            if cond.__contains__('57'):
+                passive_skill_set_id += 1000000
+                continue
+                
+            prob = 100
+            # If line doesn't have a 100% chance to activate
+            if dbOutput[0][10] != 100:
+                prob = dbOutput[0][10]
+            turn = dbOutput[0][8]
+            
+            cond2 = ''
+            match dbOutput[0][3]:
+                case 1 | 16 | 59: stat = 1 # ATK
+                case 2 | 60: stat = 2 # DEF
+                case 3 | 61: stat = 0 # ATK & DEF
+                case 68:
+                    if dbOutput[0][13] == 1: stat = 1
+                    elif dbOutput[0][13] == 3: stat = 2
+                    else:
+                        passive_skill_set_id += 1000000
+                        continue
+                case 71: 
+                    if not cond2:
+                        cond2 = 'The more HP remaining'
+                    else:
+                        cond2 = 'The more HP remaining, '
+                    stat = 1
+                case 76:
+                    superEffective = True
+                    passive_skill_set_id += 1000000
+                    continue
+                case 79 | 103:
+                    characterKit.transformation = dbOutput[0][12]
+                    passive_skill_set_id += 1000000
+                    continue
+                case 81:
+                    additional += 1
+                    passive_skill_set_id += 1000000
+                    continue
+                case 90:
+                    crit = True
+                    passive_skill_set_id += 1000000
+                    continue
+                case 98:
+                    if not cond2:
+                        cond2 = '# actions performed'
+                    else:
+                        cond2 = ', # actions performed'
+                    match dbOutput[0][14]:
+                        case 0:
+                            stat = 1
+                        case 1:
+                            stat = 2
+                        case _:
+                            crit = True
+                            passive_skill_set_id += 1000000
+                            continue
+                #case 120 | 128:
+                    #onAttackATK.append(['Counter', dbOutput[0][12], dbOutput[0][13], dbOutput[0][7], dbOutput[0][2], dbOutput[0][10]])
+                    #passive_skill_set_id += 1000000
+                    #continue
+            
+            if not dbOutput[0][2] == 1:
+                if not cond2:
+                    cond2 = 'When attacking'
+                else:
+                    cond2 += ', when attacking'
+                    
+            if dbOutput[0][3] == 61:
+                if not cond2:
+                    cond2 = '# Ki Spheres obtained'
+                else:
+                    cond2 += ', # Ki Spheres obtained'
+            elif dbOutput[0][3] == 68:
+                match dbOutput[0][12]:
+                    case 1:
+                        if not cond2:
+                            cond2 = '# AGL Ki Spheres obtained'
+                        else:
+                            cond2 += ', # AGL Ki Spheres obtained'
+                    case 2:
+                        if not cond2:
+                            cond2 = '# TEQ Ki Spheres obtained'
+                        else:
+                            cond2 += ', # TEQ Ki Spheres obtained'
+                    case 4:
+                        if not cond2:
+                            cond2 = '# INT Ki Spheres obtained'
+                        else:
+                            cond2 += ', # INT Ki Spheres obtained'
+                    case 8:
+                        if not cond2:
+                            cond2 = '# STR Ki Spheres obtained'
+                        else:
+                            cond2 += ', # STR Ki Spheres obtained'
+                    case 16:
+                        if not cond2:
+                            cond2 = '# PHY Ki Spheres obtained'
+                        else:
+                            cond2 += ', # PHY Ki Spheres obtained'
+            
+            if dbOutput[0][9] == 1:
+                if not cond2:
+                    cond2 = 'Once only'
+                else:
+                    cond2 += ', once only'
+            
+            # If class buff and character not in class
+            if ((dbOutput[0][4] == 12 and characterKit.awakening_element_type != 'Super') or
+            (dbOutput[0][4] == 13 and characterKit.awakening_element_type != 'Extreme')):
+                passive_skill_set_id += 1000000
+                continue 
+            # If type buff and character is not in type
+            elif ((dbOutput[0][3] == 16 or dbOutput[0][3] == 17 or dbOutput[0][3] == 18) and
+            ((dbOutput[0][12] == 0 and characterKit.element != 'AGL') or
+            (dbOutput[0][12] == 1 and characterKit.element != 'TEQ') or
+            (dbOutput[0][12] == 2 and characterKit.element != 'INT') or
+            (dbOutput[0][12] == 3 and characterKit.element != 'STR') or
+            (dbOutput[0][12] == 4 and characterKit.element != 'PHY'))):
+                passive_skill_set_id += 1000000
+                continue
+            
+            if not cond and prob == 100 and dbOutput[0][2] == 1 and not cond2:
+                match stat:
+                    case 0:
+                        if dbOutput[0][3] == 18:
+                            if dbOutput[0][7] == 0: # Flat ATK & DEF raise
+                                atkFlatBuff += dbOutput[0][13]
+                                defFlatBuff += dbOutput[0][14]
+                            elif dbOutput[0][7] == 1: # Flat ATK & DEF lower
+                                atkFlatBuff -= dbOutput[0][13]
+                                defFlatBuff += dbOutput[0][14]
+                            elif dbOutput[0][7] == 2: # Percent ATK & DEF raise
+                                atkPerBuff += dbOutput[0][13]
+                                defPerBuff += dbOutput[0][14]
+                            elif dbOutput[0][7] == 3: # Percent ATK & DEF lower
+                                atkPerBuff -= dbOutput[0][13]
+                                defPerBuff += dbOutput[0][14]
+                        elif dbOutput[0][3] == 82:
+                            if dbOutput[0][7] == 0: # Flat ATK & DEF raise
+                                atkFlatBuff += dbOutput[0][13]
+                                defFlatBuff += dbOutput[0][13]
+                            elif dbOutput[0][7] == 1: # Flat ATK & DEF lower
+                                atkFlatBuff -= dbOutput[0][13]
+                                defFlatBuff += dbOutput[0][13]
+                            elif dbOutput[0][7] == 2: # Percent ATK & DEF raise
+                                atkPerBuff += dbOutput[0][13]
+                                defPerBuff += dbOutput[0][13]
+                            elif dbOutput[0][7] == 3: # Percent ATK & DEF lower
+                                atkPerBuff -= dbOutput[0][13]
+                                defPerBuff += dbOutput[0][13]
+                        else:
+                            if dbOutput[0][7] == 0: # Flat ATK & DEF raise
+                                atkFlatBuff += dbOutput[0][12]
+                                defFlatBuff += dbOutput[0][13]
+                            elif dbOutput[0][7] == 1: # Flat ATK & DEF lower
+                                atkFlatBuff -= dbOutput[0][12]
+                                defFlatBuff += dbOutput[0][13]
+                            elif dbOutput[0][7] == 2: # Percent ATK & DEF raise
+                                atkPerBuff += dbOutput[0][12]
+                                defPerBuff += dbOutput[0][13]
+                            elif dbOutput[0][7] == 3: # Percent ATK & DEF lower
+                                atkPerBuff -= dbOutput[0][12]
+                                defPerBuff += dbOutput[0][13]
+                    case 1:
+                        if dbOutput[0][3] == 16:
+                            if dbOutput[0][7] == 0: # Flat ATK raise
+                                atkFlatBuff += dbOutput[0][13]
+                            elif dbOutput[0][7] == 1: # Flat ATK lower
+                                atkFlatBuff -= dbOutput[0][13]
+                            elif dbOutput[0][7] == 2: # Percent ATK raise
+                                atkPerBuff += dbOutput[0][13]
+                            elif dbOutput[0][7] == 3: # Percent ATK lower
+                                atkPerBuff -= dbOutput[0][13]
+                        # Normal SoT Buffs
+                        else:
+                            if dbOutput[0][7] == 0: # Flat ATK raise
+                                atkFlatBuff += dbOutput[0][12]
+                            elif dbOutput[0][7] == 1: # Flat ATK lower
+                                atkFlatBuff -= dbOutput[0][12]
+                            elif dbOutput[0][7] == 2: # Percent ATK raise
+                                atkPerBuff += dbOutput[0][12]
+                            elif dbOutput[0][7] == 3: # Percent ATK lower
+                                atkPerBuff -= dbOutput[0][12]
+                    case 2:
+                        if dbOutput[0][7] == 0: # Flat DEF raise
+                            defFlatBuff += dbOutput[0][12]
+                        elif dbOutput[0][7] == 1: # Flat DEF lower
+                            defFlatBuff -= dbOutput[0][12]
+                        elif dbOutput[0][7] == 2: # Percent DEF raise
+                            defPerBuff += dbOutput[0][12]
+                        elif dbOutput[0][7] == 3: # Percent DEF lower
+                            defPerBuff -= dbOutput[0][12]
+            else:
+                match dbOutput[0][2]:
+                    case 1:
+                        if dbOutput[0][3] == 18:
+                            match stat:
+                                case 0: condSoTStat[0].append([f'{cond} ({cond2}) ({prob}% chance) (For {turn} turn(s))', dbOutput[0][13], dbOutput[0][14], dbOutput[0][7]])
+                                case 1: condSoTStat[1].append([f'{cond} ({cond2}) ({prob}% chance) (For {turn} turn(s))', dbOutput[0][13], dbOutput[0][14], dbOutput[0][7]])
+                                case 2: condSoTStat[2].append([f'{cond} ({cond2}) ({prob}% chance) (For {turn} turn(s))', dbOutput[0][13], dbOutput[0][14], dbOutput[0][7]])
+                        elif dbOutput[0][3] == 68:
+                            match stat:
+                                case 1: condSoTStat[1].append([f'{cond} ({cond2}) ({prob}% chance) (For {turn} turn(s))', dbOutput[0][14], 0, dbOutput[0][7]])
+                                case 2: condSoTStat[2].append([f'{cond} ({cond2}) ({prob}% chance) (For {turn} turn(s))', dbOutput[0][14], 0, dbOutput[0][7]])
+                        else:
+                            match stat:
+                                case 0: condSoTStat[0].append([f'{cond} ({cond2}) ({prob}% chance) (For {turn} turn(s))', dbOutput[0][12], dbOutput[0][13], dbOutput[0][7]])
+                                case 1: condSoTStat[1].append([f'{cond} ({cond2}) ({prob}% chance) (For {turn} turn(s))', dbOutput[0][12], dbOutput[0][13], dbOutput[0][7]])
+                                case 2: condSoTStat[2].append([f'{cond} ({cond2}) ({prob}% chance) (For {turn} turn(s))', dbOutput[0][12], dbOutput[0][13], dbOutput[0][7]])
+                    case _:
+                        if dbOutput[0][3] == 18:
+                            match stat:
+                                case 0: onAttackStat[0].append([f'{cond} ({cond2}) ({prob}% chance) (For {turn} turn(s))', dbOutput[0][13], dbOutput[0][14], dbOutput[0][7]])
+                                case 1: onAttackStat[1].append([f'{cond} ({cond2}) ({prob}% chance) (For {turn} turn(s))', dbOutput[0][13], dbOutput[0][14], dbOutput[0][7]])
+                                case 2: onAttackStat[2].append([f'{cond} ({cond2}) ({prob}% chance) (For {turn} turn(s))', dbOutput[0][13], dbOutput[0][14], dbOutput[0][7]])
+                        elif dbOutput[0][3] == 68:
+                            match stat:
+                                case 1: onAttackStat[1].append([f'{cond} ({cond2}) ({prob}% chance) (For {turn} turn(s))', dbOutput[0][14], 0, dbOutput[0][7]])
+                                case 2: onAttackStat[2].append([f'{cond} ({cond2}) ({prob}% chance) (For {turn} turn(s))', dbOutput[0][14], 0, dbOutput[0][7]])
+                        else:
+                            match stat:
+                                case 0: onAttackStat[0].append([f'{cond} ({cond2}) ({prob}% chance) (For {turn} turn(s))', dbOutput[0][12], dbOutput[0][13], dbOutput[0][7]])
+                                case 1: onAttackStat[1].append([f'{cond} ({cond2}) ({prob}% chance) (For {turn} turn(s))', dbOutput[0][12], dbOutput[0][13], dbOutput[0][7]])
+                                case 2: onAttackStat[2].append([f'{cond} ({cond2}) ({prob}% chance) (For {turn} turn(s))', dbOutput[0][12], dbOutput[0][13], dbOutput[0][7]])
+            passive_skill_set_id += 1000000
+    
+    for line in condSoTStat[0]:
+        check = tk.BooleanVar()
+        checkSoT[0].append(tk.BooleanVar())
+        checkbox = tk.Checkbutton(ATKDEFFrame, text=line[0], variable=check)
+        checkbox.pack(anchor=W)
+    for line in condSoTStat[1]:
+        check = tk.BooleanVar()
+        checkSoT[1].append(check)
+        checkbox = tk.Checkbutton(ATKFrame, text=line[0], variable=check)
+        checkbox.pack(anchor=W)
+    for line in condSoTStat[2]:
+        check = tk.BooleanVar()
+        checkbox = tk.Checkbutton(DEFFrame, text=line[0], variable=check)
+        checkSoT[2].append(check)
+        checkbox.pack(anchor=W)
+    for line in onAttackStat[0]:
+        check = tk.BooleanVar()
+        checkAttack[0].append(check)
+        checkbox = tk.Checkbutton(ATKDEFFrame2, text=line[0], variable=check)
+        checkbox.pack(anchor=W)
+    for line in onAttackStat[1]:
+        check = tk.BooleanVar()
+        checkAttack[1].append(check)
+        checkbox = tk.Checkbutton(ATKFrame2, text=line[0], variable=check)
+        checkbox.pack(anchor=W)
+    for line in onAttackStat[2]:
+        check = tk.BooleanVar()
+        checkAttack[2].append(check)
+        checkbox = tk.Checkbutton(DEFFrame2, text=line[0], variable=check)
+        checkbox.pack(anchor=W)
+    return [atkPerBuff, defPerBuff], [atkFlatBuff, defFlatBuff], condSoTStat, checkSoT, onAttackStat, checkAttack, crit, superEffective, additional
 
 def main():   
     if not idEntry.get():
@@ -1648,37 +1629,32 @@ def main():
     else:
         partnerID = int(partneridEntry.get())
     EZA = ezaEntry.get()
-    
-    if characterID == 0:
-        debugMain(dbCursor)
-        exit(0)
-    else:
-        mainUnit = getKit(characterID, dbCursor, EZA)
+    mainUnit = getKit(characterID, dbCursor, EZA)
     
     dbCursor.execute(f'''SELECT * FROM leader_skill_sets where id = {mainUnit.leader_skill}''')
     dbOutput = dbCursor.fetchall()
-    kitLabelText = f'{mainUnit.awakening_element_type} {mainUnit.element} {mainUnit.rarity} [{dbOutput[0][1]}] {mainUnit.name}\nLeader Skill: {dbOutput[0][2]}'
+    print(f'{mainUnit.awakening_element_type} {mainUnit.element} {mainUnit.rarity} [{dbOutput[0][1]}] {mainUnit.name}\nLeader Skill: {dbOutput[0][2]}')
     
     for special in mainUnit.specials:
         dbCursor.execute(f'''SELECT * FROM special_sets where id = {special[0]}''')
         dbOutput = dbCursor.fetchall()[0]
-        kitLabelText += f'\nSuper Attack: {dbOutput[1]} - {dbOutput[2]}'
+        print(f'\nSuper Attack: {dbOutput[1]} - {dbOutput[2]}')
         if special[2] != 0:
             dbCursor.execute(f'''SELECT * FROM special_bonuses where id = {special[2]}''')
             dbOutput = dbCursor.fetchall()[0]
-            kitLabelText += f'- {dbOutput[2]}'
+            print(f'- {dbOutput[2]}')
             if special[3] != 0:
                 dbCursor.execute(f'''SELECT * FROM special_bonuses where id = {special[3]}''')
                 dbOutput = dbCursor.fetchall()[0]
-                kitLabelText += f'- {dbOutput[2]}'
+                print(f'- {dbOutput[2]}')
     
     if mainUnit.passive_skill_set_id:
         dbCursor.execute(f'''SELECT * FROM passive_skill_sets where id = {mainUnit.passive_skill_set_id}''')
         dbOutput = dbCursor.fetchall()[0]
-        kitLabelText += f'\nPassive Skill: {dbOutput[1]}\n{dbOutput[2]}'
+        print(f'\nPassive Skill: {dbOutput[1]}\n{dbOutput[2]}')
     
     if mainUnit.costumes:
-        kitLabelText += f'\nCostume: {mainUnit.costumes}'
+        print(f'\nCostume: {mainUnit.costumes}')
     
     #if mainUnit.dokkan_fields:
     #    kitLabelText += f'\nDomain Skill: {mainUnit.dokkan_fields[0]}\n- {mainUnit.dokkan_fields[1]}'
@@ -1686,13 +1662,13 @@ def main():
     if mainUnit.active_skill_set_id:
         dbCursor.execute(f'''SELECT * FROM active_skill_sets where id = {mainUnit.active_skill_set_id}''')
         dbOutput = dbCursor.fetchall()[0]
-        kitLabelText += f'\nActive Skill: {dbOutput[1]}\n- Effect: {dbOutput[2]}\n- Condition: {dbOutput[3]}'
+        print(f'\nActive Skill: {dbOutput[1]}\n- Effect: {dbOutput[2]}\n- Condition: {dbOutput[3]}')
         
     if mainUnit.standby_skills:
-        kitLabelText += f'\nStandby Skill: {mainUnit.standby_skills[0]}\n- Effect: {mainUnit.standby_skills[1]}\n- Condition: {mainUnit.standby_skills[2]}'
+        print(f'\nStandby Skill: {mainUnit.standby_skills[0]}\n- Effect: {mainUnit.standby_skills[1]}\n- Condition: {mainUnit.standby_skills[2]}')
         
     for finish_skill in mainUnit.finish_skills:
-        kitLabelText += f'\nFinish Skill: {finish_skill[0]}\n- Effect: {finish_skill[1]}\n- Condition: {finish_skill[2]}'
+        print(f'\nFinish Skill: {finish_skill[0]}\n- Effect: {finish_skill[1]}\n- Condition: {finish_skill[2]}')
     
     print('\nLink Skills:')
     for card_link in mainUnit.card_links:
@@ -1714,18 +1690,11 @@ def main():
     print('\nStats: ')
     print(f'HP: {mainUnit.hp_max} | ATK: {mainUnit.atk_max} | DEF: {mainUnit.def_max}')
     
-    #kitLabel = tk.Label(root, text=kitLabelText)
-    #kitLabel.grid(row=0, column=1, padx=5, pady=5)
+    perBuff, flatBuff, condSoTStat, checkSoT, onAttackStat, checkAttack, crit, superEffective, additional = calculateMain(mainUnit, dbCursor)
     
-    if not mainUnit.card_links:
-        print("No partners available.")
-        calculateLinks(mainUnit, mainUnit, dbCursor)
-    else:
-        if partnerID == characterID or not partnerID:
-            calculateLinks(mainUnit, mainUnit, dbCursor)
-        else:
-            partnerKit = getPartnerKit(int(partnerID))
-            calculateLinks(mainUnit, partnerKit, dbCursor)
+    # Button to trigger the function
+    calcButton = tk.Button(root, text="Calculate", command= lambda:calculateMain2(mainUnit, dbCursor, perBuff, flatBuff, condSoTStat, checkSoT, partnerID, onAttackStat, checkAttack, crit, superEffective, additional))
+    calcButton.grid(row=9, column=1, padx=5, pady=5)
     
     #if mainUnit.transformation:
     #    input(f'Click any button to continue with transformed form:')
@@ -1760,6 +1729,10 @@ idLabel.grid(row=1, column=0, padx=5, pady=5)
 idEntry = tk.Entry(root, highlightbackground='#555555', highlightthickness=5, width=10)
 idEntry.grid(row=2, column=0, padx=5, pady=5)
 
+# Button to trigger the function
+entryButton = tk.Button(root, text="Gather Details", command=main)
+entryButton.grid(row=1, column=1, padx=5, pady=5)
+
 # Create the Entry widget
 partneridLabel = tk.Label(root, text="Enter partner ID:")
 partneridLabel.grid(row=1, column=2, padx=5, pady=5)
@@ -1792,24 +1765,35 @@ hipoLabel5.grid(row=5, column=1, padx=5, pady=5)
 hipoLabel6 = tk.Radiobutton(root, text="100%", variable=hipoEntry, value=5)
 hipoLabel6.grid(row=5, column=2, padx=5, pady=5)
 
+# Create six individual panels within the bottom frame
+ATKDEFFrame = tk.Frame(root, highlightbackground="black", highlightthickness=1, bg="lightblue")
+ATKDEFFrame.grid(row=6, column=0, padx=5, pady=5)
+ATKFrame = tk.Frame(root, highlightbackground="black", highlightthickness=1, bg="lightgreen")
+ATKFrame.grid(row=6, column=1, padx=5, pady=5)
+DEFFrame = tk.Frame(root, highlightbackground="black", highlightthickness=1, bg="lightcoral")
+DEFFrame.grid(row=6, column=2, padx=5, pady=5)
+
 domain = tk.IntVar()
 domain.set(0)  # Set an initial selected value
 domainLabel = tk.Checkbutton(root, text="Domain", variable=domain)
-domainLabel.grid(row=6, column=0, padx=5, pady=5)
+domainLabel.grid(row=7, column=0, padx=5, pady=5)
 
 gogeta = tk.IntVar()
 gogeta.set(0)  # Set an initial selected value
 gogetaLabel = tk.Checkbutton(root, text="LR Gogeta Active Support (ATK & DEF +54% and attacks effective against all Types)", variable=gogeta)
-gogetaLabel.grid(row=6, column=1, padx=5, pady=5)
+gogetaLabel.grid(row=7, column=1, padx=5, pady=5)
 
 active = tk.IntVar()
 active.set(0)  # Set an initial selected value
 activeLabel = tk.Checkbutton(root, text="Active", variable=active)
-activeLabel.grid(row=6, column=2, padx=5, pady=5)
+activeLabel.grid(row=7, column=2, padx=5, pady=5)
 
-# Button to trigger the function
-entryButton = tk.Button(root, text="Calculate", command=main)
-entryButton.grid(row=7, column=1, padx=5, pady=5)
+ATKDEFFrame2 = tk.Frame(root, highlightbackground="black", highlightthickness=1, bg="lightblue")
+ATKDEFFrame2.grid(row=8, column=0, padx=5, pady=5)
+ATKFrame2 = tk.Frame(root, highlightbackground="black", highlightthickness=1, bg="lightgreen")
+ATKFrame2.grid(row=8, column=1, padx=5, pady=5)
+DEFFrame2 = tk.Frame(root, highlightbackground="black", highlightthickness=1, bg="lightcoral")
+DEFFrame2.grid(row=8, column=2, padx=5, pady=5)
 
 # Button for closing
 exitButton = Button(root, text="Exit", command=root.destroy)
