@@ -42,6 +42,7 @@ class Unit:
     costumes: list
     optimal_awakening_growths: list
     card_links: list
+    counter: int
     finish_skills: list
     standby_skills: list
     dokkan_fields: list
@@ -49,8 +50,8 @@ class Unit:
     def __init__(self, id, name, rarity, hp_max, atk_max, def_max, awakening_element_type,
     element, skill_lv_max, eball_mod_mid, eball_mod_mid_num, eball_mod_max, eball_mod_max_num,
     leader_skill, passive_skill_set_id, active_skill_set_id, categories, specials,
-    transformation, costumes, optimal_awakening_growths, card_links, finish_skills,
-    standby_skills, dokkan_fields):
+    transformation, costumes, optimal_awakening_growths, card_links, counter,
+    finish_skills, standby_skills, dokkan_fields):
         self.id = id
         self.name = name
         self.rarity = rarity
@@ -73,6 +74,7 @@ class Unit:
         self.costumes = costumes
         self.optimal_awakening_growths = optimal_awakening_growths
         self.card_links = card_links
+        self.counter = counter
         self.finish_skills = finish_skills
         self.standby_skills = standby_skills
         self.dokkan_fields = dokkan_fields
@@ -93,10 +95,6 @@ class Partner:
         self.element = element
         self.card_links = card_links
 
-# To-Do: Ask for main character ID in terminal, then create window to list character info and select options:
-# 1. Print character info
-# 2. Add tabs for selecting passives + partner + EZAs/HiPo
-
 # Units that do not fit in terminal:
 # - SEZA LR INT SSJ2 Gohan
 # - EZA UR PHY Future Android #17
@@ -115,7 +113,7 @@ class Partner:
 # Calculate ATK stat given 'on attack' conditions (When attacking, per attack
 # evaded/received/performed, when the target enemy ..., etc.)
 # Dev Note: Adjust for multiple stat buffs with one SA (PHY Gorilla)
-def calcStatAttack(characterKit, dbCursor, special, newStat, onAttackStat, atkBuff, defBuff, counter, crit, superEffective, additional):       
+def calcStatAttack(characterKit, dbCursor, special, newStat, onAttackStat, atkBuff, defBuff, crit, superEffective, additional):       
     
     if characterKit.active_skill_set_id:
         dbCursor.execute(f'''SELECT * FROM active_skill_sets WHERE id = {characterKit.active_skill_set_id}''')
@@ -135,10 +133,34 @@ def calcStatAttack(characterKit, dbCursor, special, newStat, onAttackStat, atkBu
             else:
                 print(f'Active Skill APT ({ultimateMutiplier}%): {ultimateATK}')
     
-    dbCursor.execute(f'''SELECT * FROM specials WHERE special_set_id = {special[0]} AND 
-    (target_type = 1 or target_type = 2 or target_type = 12 or target_type = 13)''')
-    dbOutput = dbCursor.fetchall()
-    if dbOutput:
+    dbCursor.execute(f'''SELECT * FROM specials WHERE special_set_id = {special[0]} AND
+    (efficacy_type = 1 OR efficacy_type = 3) AND
+    (target_type = 1 OR target_type = 2)''')
+    atkOutput = dbCursor.fetchall()
+    
+    atkBuff = [0] * len(atkOutput)
+    for i, atkRaise in enumerate(atkOutput):
+        atkBuff[i] = [0] * ((atkRaise[6]*additional)+1)
+        for j, buff in enumerate(range(1, (atkRaise[6]*additional)+2)):
+            atkBuff[i][j] = buff*atkRaise[9]
+            
+    dbCursor.execute(f'''SELECT * FROM specials WHERE special_set_id = {special[0]} AND
+    (efficacy_type = 2 OR efficacy_type = 3) AND
+    (target_type = 1 OR target_type = 2)''')
+    defOutput = dbCursor.fetchall()
+    
+    defBuff = [0] * len(defOutput)
+    for i, defRaise in enumerate(defOutput):
+        defBuff[i] = [0] * ((defRaise[6]*additional)+1)
+        for j, buff in enumerate(range(1, (defRaise[6]*additional)+2)):
+            defBuff[i][j] = buff*defRaise[9]
+            if defRaise[3] == 3:
+                defBuff[i][j] = buff*defRaise[10]
+    
+    print(atkBuff)
+    print(defBuff)
+    
+    '''if dbOutput:
         print(dbOutput)
         for specialPart in dbOutput:
             match specialPart[3]:
@@ -146,26 +168,26 @@ def calcStatAttack(characterKit, dbCursor, special, newStat, onAttackStat, atkBu
                     if special[0] == characterKit.specials[0][0]:
                         for turn in range(1, (specialPart[6]*additional)+2):
                             print(f'Super Attack {turn}: Raises ATK by {specialPart[9]*turn}%')
-                            calcATKSA(characterKit, dbCursor, special, newStat, counter, crit, superEffective, additional, specialPart[9]*turn)
+                            calcATKSA(characterKit, dbCursor, special, newStat, crit, superEffective, additional, specialPart[9]*turn)
                     else:
                         for turn in range(1, specialPart[6]+1):
-                            calcATKSA(characterKit, dbCursor, special, newStat, counter, crit, superEffective, additional, specialPart[9]*turn)
+                            calcATKSA(characterKit, dbCursor, special, newStat, crit, superEffective, additional, specialPart[9]*turn)
                 case _:
-                    calcATKSA(characterKit, dbCursor, special, newStat, counter, crit, superEffective, additional, 0)
+                    calcATKSA(characterKit, dbCursor, special, newStat, crit, superEffective, additional, 0)
     else:
-        calcATKSA(characterKit, dbCursor, special, newStat, counter, crit, superEffective, additional, 0)
+        calcATKSA(characterKit, dbCursor, special, newStat, crit, superEffective, additional, 0)
         
-    '''if onAttackStat[2]:
+    if onAttackStat[2]:
     match onAttackStat[2][0][4]:
         case 0: defBuff[1] += onAttackStat[2][0][12]
         case 1: defBuff[1] -= onAttackStat[2][0][12]  
         case 2: defBuff[0] += onAttackStat[2][0][12]
         case 3: defBuff[0] -= onAttackStat[2][0][12]
     onAttackStat[2].pop(0)
-    calcStatAttack(characterKit, dbCursor, special, totalStat, onAttackStat, atkBuff, defBuff, counter, crit, superEffective, additional)''' 
+    calcStatAttack(characterKit, dbCursor, special, totalStat, onAttackStat, atkBuff, defBuff, crit, superEffective, additional)''' 
     print()
     
-def calcATKSA(characterKit, dbCursor, special, totalStat, counter, crit, superEffective, additional, atkMultiplier):    
+def calcATKSA(characterKit, dbCursor, special, totalStat, crit, superEffective, additional, atkMultiplier):    
     # SA multiplier
     dbCursor.execute(f'''SELECT * FROM special_sets where id = {special[0]}''')
     dbOutput = dbCursor.fetchall()
@@ -237,7 +259,8 @@ def calcATKSA(characterKit, dbCursor, special, totalStat, counter, crit, superEf
                 finalATK = int(totalStat[0]*((baseMultiplier+atkMultiplier+(specialPart[0][9]*turn))/100))
                 print(f'Additional Super Attack {turn} ({ki} Ki): {finalATK}')
     
-    if counter:
+    if characterKit.counter != 0:
+        counter = characterKit.counter
         if crit:
             print(f'Counter APT (Before SA, {counter}%): {int(totalStat[0]*counter)} (Crit: {int(totalStat[0]*(counter/100)*1.9)})')     
             for i in range(1, additional+2):
@@ -397,7 +420,7 @@ def calculateAttack(characterKit, special, totalBuff, onAttackStat, checkAttack,
     totalBuff[1] += int(flatBuff[1]) # Apply 'on attack' flat buffs
     print(f"| {totalBuff[0]} | {totalBuff[1]} | (With {flatBuff[0]}/{flatBuff[1]} Flat 'On Attack' Passive Buff)")
     
-    calcStatAttack(characterKit, dbCursor, special, totalBuff, onAttackStat, [0, 0], [0, 0], "", crit, superEffective, additional)
+    calcStatAttack(characterKit, dbCursor, special, totalBuff, onAttackStat, [0, 0], [0, 0], crit, superEffective, additional)
 
 
 def calcStatKi(characterKit, totalBuff, onAttackStat, checkAttack, crit, superEffective, additional):
@@ -664,7 +687,7 @@ def findCond(characterKit, dbOutput, cond):
     
 # Read through kit, sepearate lines based on activiation condition (SoT vs. 'on attack')
 # Then, calculate SoT defense and conditional SoT defense  
-def calculateLinks(characterKit, dbCursor, partnerID, crit):   
+def calculateLinks(characterKit, dbCursor, partnerKit, crit):   
     # Find all shared links
     shared = False
     kiLinkBuffs = 0
@@ -676,7 +699,6 @@ def calculateLinks(characterKit, dbCursor, partnerID, crit):
     recoveryLinkBuffs = 0
     defLinkDebuffs = 0
     
-    partnerKit = getPartnerKit(partnerID)
     if (characterKit.name != partnerKit.name or
     (int(partnerKit.id) >= 4000000 and characterKit.id != partnerKit.id)):
         for sharedLink in characterKit.card_links:
@@ -718,7 +740,7 @@ def calculateLinks(characterKit, dbCursor, partnerID, crit):
    
 # Read through kit, sepearate lines based on activiation condition (SoT vs. 'on attack')
 # Then, calculate SoT attack and conditional SoT attack  
-def calculateMain2(characterKit, dbCursor, perBuff, flatBuff, condSoTStat, checkSoT, partnerID, onAttackStat, checkAttack, crit, superEffective, additional):   
+def calculateMain2(characterKit, dbCursor, perBuff, flatBuff, condSoTStat, checkSoT, onAttackStat, checkAttack, crit, superEffective, additional):   
     os.system('cls')
     totalBuff = [characterKit.atk_max, characterKit.def_max]
     perBuff2 = [0, 0]
@@ -731,11 +753,9 @@ def calculateMain2(characterKit, dbCursor, perBuff, flatBuff, condSoTStat, check
     print('| ATK | DEF |')
     print('-------------')
     print(f'| {totalBuff[0]} | {totalBuff[1]} | (Base Stat)')
-    # Duo 200% lead by default
-    lead = 5
-    # Dev note: Temp condition, manually checks for units supported under 220% leads:
-    # - Vegto, Gogta, SSBE, Monke, Rice, Frank, Ultra Vegeta 1, Fishku, Cell Games,
-    # U7 Pawn, U6 Pawn, KFC, Serious Tao, Blue Balls, Rosemasu, Gogta 4, Omeger Shawn
+
+    lead = 5 # Duo 200% lead by default
+    # Dev note: Temp condition, manually checks for units supported under 220% leads
     if ((("Earth-Protecting Heroes" in characterKit.categories or 
     "Fused Fighters" in characterKit.categories or
     "Pure Saiyans" in characterKit.categories) and
@@ -904,11 +924,13 @@ def calculateMain2(characterKit, dbCursor, perBuff, flatBuff, condSoTStat, check
     totalBuff[1] += int(flatBuff[1]+flatBuff2[1]) # Apply SoT flat DEF buffs
     print(f"| {totalBuff[0]} | {totalBuff[1]} | (With {flatBuff[0]+flatBuff2[0]}/{flatBuff[1]+flatBuff2[1]} Flat 'On Attack' Passive Buff)")
     
-    if partnerID and partnerID != characterKit.id:
-        linkBuffs = calculateLinks(characterKit, dbCursor, partnerID, crit)
-        totalBuff[0] = int(totalBuff[0] * (1 + (linkBuffs[0]/100))) # Apply link buffs
-        totalBuff[1] = int(totalBuff[1] * (1 + (linkBuffs[1]/100))) # Apply link buffs
-        print(f'| {totalBuff[0]} | {totalBuff[1]} | (With {linkBuffs[0]}%/{linkBuffs[1]}% Link Skill Buff)')
+    if partneridEntry.get():
+        partnerKit = getPartnerKit(int(partneridEntry.get()))
+        if partnerKit.id and partnerKit.id != characterKit.id:
+            linkBuffs = calculateLinks(characterKit, dbCursor, partnerKit, crit)
+            totalBuff[0] = int(totalBuff[0] * (1 + (linkBuffs[0]/100))) # Apply link buffs
+            totalBuff[1] = int(totalBuff[1] * (1 + (linkBuffs[1]/100))) # Apply link buffs
+            print(f'| {totalBuff[0]} | {totalBuff[1]} | (With {linkBuffs[0]}%/{linkBuffs[1]}% Link Skill Buff)')
     
     calcActiveStat(characterKit, totalBuff, onAttackStat, checkAttack, crit, superEffective, additional)
    
@@ -935,7 +957,7 @@ def getPartnerKit(partnerID):
             partnerKit.rarity = 'UR'
         case 5:
             partnerKit.rarity = 'LR'
-    print("Beep")
+    
     match dbOutput[0][12]:
         case 0 | 10 | 20:
             partnerKit.element = 'AGL'
@@ -964,7 +986,7 @@ def getKit(characterID, dbCursor, EZA):
     if characterID % 2 == 0:
         characterID += 1
     characterKit = Unit(characterID, '', '', 0, 0, 0, '', '', 0, 0, 0, 0, 0, '', 0, 0, [],
-    [], [], [], 0, [], [], [], [])
+    [], [], [], 0, [], 0, [], [], [])
     
     dbCursor.execute(f'''SELECT * FROM cards where id = {characterID}''')
     print("Card sucessfully loaded.")
@@ -1463,6 +1485,10 @@ def calculateMain(characterKit, dbCursor):
                 characterKit.dokkan_fields = domainOutput[0][1]
                 passive_skill_set_id += 1000000
                 continue
+            elif dbOutput[0][3] == 120 or dbOutput[0][3] == 128:
+                characterKit.counter = dbOutput[0][13]
+                passive_skill_set_id += 1000000
+                continue
             
             if dbOutput[0][4] == 2 and dbOutput[0][5] != 0:
                 dbCursor.execute(f'''SELECT * FROM sub_target_types where sub_target_type_set_id = {dbOutput[0][5]}''')
@@ -1563,10 +1589,6 @@ def calculateMain(characterKit, dbCursor):
                             crit = True
                             passive_skill_set_id += 1000000
                             continue
-                #case 120 | 128:
-                    #onAttackATK.append(['Counter', dbOutput[0][12], dbOutput[0][13], dbOutput[0][7], dbOutput[0][2], dbOutput[0][10]])
-                    #passive_skill_set_id += 1000000
-                    #continue
             
             if not dbOutput[0][2] == 1:
                 if not cond2:
@@ -1733,6 +1755,7 @@ def calculateMain(characterKit, dbCursor):
                                 case 2: onAttackStat[2].append([f'{cond} ({cond2}) ({prob}% chance) (For {turn} turn(s))', dbOutput[0][12], dbOutput[0][13], dbOutput[0][7]])
             passive_skill_set_id += 1000000
     
+    # Dev Note: Switch Listbox to OptionMenu for simplicity
     for line in condSoTStat[0]:
         if line[0].__contains__('# ') and not line[0].__contains__('HP remaining'):
             incBox = Listbox(ATKDEFFrame)
@@ -1862,10 +1885,7 @@ def main():
         characterID = 0
     else:
         characterID = int(idEntry.get())     
-    if not partneridEntry.get():
-        partnerID = 0
-    else:
-        partnerID = int(partneridEntry.get())
+
     EZA = ezaEntry.get()
     mainUnit = getKit(characterID, dbCursor, EZA)
     
@@ -1932,7 +1952,7 @@ def main():
     perBuff, flatBuff, condSoTStat, checkSoT, onAttackStat, checkAttack, crit, superEffective, additional = calculateMain(mainUnit, dbCursor)
     
     # Button to trigger the function
-    calcButton = tk.Button(root, text="Calculate", command= lambda:calculateMain2(mainUnit, dbCursor, perBuff, flatBuff, condSoTStat, checkSoT, partnerID, onAttackStat, checkAttack, crit, superEffective, additional))
+    calcButton = tk.Button(root, text="Calculate", command= lambda:calculateMain2(mainUnit, dbCursor, perBuff, flatBuff, condSoTStat, checkSoT, onAttackStat, checkAttack, crit, superEffective, additional))
     calcButton.grid(row=10, column=1, padx=5, pady=5)
     
     #if mainUnit.transformation:
