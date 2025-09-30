@@ -7,6 +7,7 @@ import tkinter as tk
 import urllib.request
 
 from dataclasses import dataclass, field
+from itertools import product
 from PIL import Image, ImageTk
 from tkinter import *
 from tkinter import ttk
@@ -109,12 +110,8 @@ class Partner:
 
 # Dev Note: Adjust AGL LR Gotenks
 # Dev Note: Adjust TEQ LR Broly's EZA stacks (Multi-select?)
-
-# Calculate ATK stat given 'on attack' conditions (When attacking, per attack
-# evaded/received/performed, when the target enemy ..., etc.)
-# Dev Note: Adjust for multiple stat buffs with one SA (PHY Gorilla)
-def calcStatAttack(characterKit, dbCursor, special, newStat, onAttackStat, atkBuff, defBuff, crit, superEffective, additional):       
     
+def calcATKSA(characterKit, dbCursor, special, totalStat, atkMultiplier, defMultiplier, crit, superEffective, additional):    
     if characterKit.active_skill_set_id:
         dbCursor.execute(f'''SELECT * FROM active_skill_sets WHERE id = {characterKit.active_skill_set_id}''')
         activeOutput = dbCursor.fetchall()
@@ -125,7 +122,7 @@ def calcStatAttack(characterKit, dbCursor, special, newStat, onAttackStat, atkBu
                 gokuInput = input("Use JP Active Multiplier? (y/n): ")
                 if gokuInput == 'y':
                     ultimateMutiplier = 550
-            ultimateATK = int(newStat[0]*(ultimateMutiplier/100))
+            ultimateATK = int(totalStat[0]*((ultimateMutiplier+atkMultiplier)/100))
             if crit:
                 print(f'Active Skill APT ({ultimateMutiplier}%): {ultimateATK} (Crit: {int(ultimateATK*1.9)})')
             elif superEffective:
@@ -133,61 +130,6 @@ def calcStatAttack(characterKit, dbCursor, special, newStat, onAttackStat, atkBu
             else:
                 print(f'Active Skill APT ({ultimateMutiplier}%): {ultimateATK}')
     
-    dbCursor.execute(f'''SELECT * FROM specials WHERE special_set_id = {special[0]} AND
-    (efficacy_type = 1 OR efficacy_type = 3) AND
-    (target_type = 1 OR target_type = 2)''')
-    atkOutput = dbCursor.fetchall()
-    
-    atkBuff = [0] * len(atkOutput)
-    for i, atkRaise in enumerate(atkOutput):
-        atkBuff[i] = [0] * ((atkRaise[6]*additional)+1)
-        for j, buff in enumerate(range(1, (atkRaise[6]*additional)+2)):
-            atkBuff[i][j] = buff*atkRaise[9]
-            
-    dbCursor.execute(f'''SELECT * FROM specials WHERE special_set_id = {special[0]} AND
-    (efficacy_type = 2 OR efficacy_type = 3) AND
-    (target_type = 1 OR target_type = 2)''')
-    defOutput = dbCursor.fetchall()
-    
-    defBuff = [0] * len(defOutput)
-    for i, defRaise in enumerate(defOutput):
-        defBuff[i] = [0] * ((defRaise[6]*additional)+1)
-        for j, buff in enumerate(range(1, (defRaise[6]*additional)+2)):
-            defBuff[i][j] = buff*defRaise[9]
-            if defRaise[3] == 3:
-                defBuff[i][j] = buff*defRaise[10]
-    
-    print(atkBuff)
-    print(defBuff)
-    
-    '''if dbOutput:
-        print(dbOutput)
-        for specialPart in dbOutput:
-            match specialPart[3]:
-                case 1 | 3:
-                    if special[0] == characterKit.specials[0][0]:
-                        for turn in range(1, (specialPart[6]*additional)+2):
-                            print(f'Super Attack {turn}: Raises ATK by {specialPart[9]*turn}%')
-                            calcATKSA(characterKit, dbCursor, special, newStat, crit, superEffective, additional, specialPart[9]*turn)
-                    else:
-                        for turn in range(1, specialPart[6]+1):
-                            calcATKSA(characterKit, dbCursor, special, newStat, crit, superEffective, additional, specialPart[9]*turn)
-                case _:
-                    calcATKSA(characterKit, dbCursor, special, newStat, crit, superEffective, additional, 0)
-    else:
-        calcATKSA(characterKit, dbCursor, special, newStat, crit, superEffective, additional, 0)
-        
-    if onAttackStat[2]:
-    match onAttackStat[2][0][4]:
-        case 0: defBuff[1] += onAttackStat[2][0][12]
-        case 1: defBuff[1] -= onAttackStat[2][0][12]  
-        case 2: defBuff[0] += onAttackStat[2][0][12]
-        case 3: defBuff[0] -= onAttackStat[2][0][12]
-    onAttackStat[2].pop(0)
-    calcStatAttack(characterKit, dbCursor, special, totalStat, onAttackStat, atkBuff, defBuff, crit, superEffective, additional)''' 
-    print()
-    
-def calcATKSA(characterKit, dbCursor, special, totalStat, crit, superEffective, additional, atkMultiplier):    
     # SA multiplier
     dbCursor.execute(f'''SELECT * FROM special_sets where id = {special[0]}''')
     dbOutput = dbCursor.fetchall()
@@ -315,7 +257,9 @@ def calcATKSA(characterKit, dbCursor, special, totalStat, crit, superEffective, 
                             print(f"Finish Effect APT (With {i} Super Attack, {finishMultiplier*100}%): {str(int(ATK*(1+ATKmultiplier+(baseATKmultiplier*i))*finishMultiplier))} (Super Effective: {str(int(ATK*(1+ATKmultiplier+(baseATKmultiplier*i))*finishMultiplier*1.5))})")
                         else:
                             print(f"Finish Effect APT (With {i} Super Attack, {finishMultiplier*100}%): {str(int(ATK*(1+ATKmultiplier+(baseATKmultiplier*i))*finishMultiplier))}")'''
-def calculateAttack(characterKit, special, totalBuff, onAttackStat, checkAttack, crit, superEffective, additional):
+    print()
+
+def calculateAttack(characterKit, special, totalBuff, onAttackStat, checkAttack, atkBuff2, defBuff2, crit, superEffective, additional):
     perBuff = [0, 0]
     flatBuff = [0, 0]
     
@@ -337,7 +281,7 @@ def calculateAttack(characterKit, special, totalBuff, onAttackStat, checkAttack,
                     perBuff[0] -= hpStat
                     perBuff[1] -= hpStat
         elif onAttackStat[0][i][0].__contains__('# '):
-            incAttackBuff = int(onAttackStat[0][i][1]*check.get(ACTIVE))
+            incAttackBuff = int(onAttackStat[0][i][1]*check.get())
             if incAttackBuff > onAttackStat[0][i][2] and not onAttackStat[0][i][0].__contains__('Ki Sphere'):
                 incAttackBuff = onAttackStat[0][i][2]
             match onAttackStat[0][i][3]:
@@ -376,8 +320,8 @@ def calculateAttack(characterKit, special, totalBuff, onAttackStat, checkAttack,
                 case 2: perBuff[0] += hpStat
                 case 3: perBuff[0] -= hpStat
         elif onAttackStat[1][i][0].__contains__('# '):
-            incAttackBuff = int(onAttackStat[1][i][1]*check.get(ACTIVE))
-            if incAttackBuff > onAttackStat[1][i][2] and not onAttackStat[0][i][0].__contains__('Ki Sphere'):
+            incAttackBuff = int(onAttackStat[1][i][1]*check.get())
+            if incAttackBuff > onAttackStat[1][i][2] and not onAttackStat[1][i][0].__contains__('Ki Sphere'):
                 incAttackBuff = onAttackStat[1][i][2]
             match onAttackStat[1][i][3]:
                 case 0: flatBuff[0] += incAttackBuff
@@ -399,8 +343,8 @@ def calculateAttack(characterKit, special, totalBuff, onAttackStat, checkAttack,
                 case 2: perBuff[1] += hpStat
                 case 3: perBuff[1] -= hpStat
         elif onAttackStat[2][i][0].__contains__('# '):
-            incAttackBuff = int(onAttackStat[2][i][1]*check.get(ACTIVE))
-            if incAttackBuff > onAttackStat[2][i][2] and not onAttackStat[0][i][0].__contains__('Ki Sphere'):
+            incAttackBuff = int(onAttackStat[2][i][1]*check.get())
+            if incAttackBuff > onAttackStat[2][i][2] and not onAttackStat[2][i][0].__contains__('Ki Sphere'):
                 incAttackBuff = onAttackStat[2][i][2]
             match onAttackStat[2][i][3]:
                 case 0: flatBuff[1] += incAttackBuff
@@ -420,10 +364,18 @@ def calculateAttack(characterKit, special, totalBuff, onAttackStat, checkAttack,
     totalBuff[1] += int(flatBuff[1]) # Apply 'on attack' flat buffs
     print(f"| {totalBuff[0]} | {totalBuff[1]} | (With {flatBuff[0]}/{flatBuff[1]} Flat 'On Attack' Passive Buff)")
     
-    calcStatAttack(characterKit, dbCursor, special, totalBuff, onAttackStat, [0, 0], [0, 0], crit, superEffective, additional)
+    atkMultiplier = 0
+    for buff in atkBuff2:
+        atkMultiplier += buff.get()
+        
+    defMultiplier = 0
+    for buff in defBuff2:
+        defMultiplier += buff.get()
+    
+    calcATKSA(characterKit, dbCursor, special, totalBuff, atkMultiplier, defMultiplier, crit, superEffective, additional)
 
 
-def calcStatKi(characterKit, totalBuff, onAttackStat, checkAttack, crit, superEffective, additional):
+def calcStatKi(characterKit, totalBuff, onAttackStat, checkAttack, atkBuff2, defBuff2, crit, superEffective, additional):
     if characterKit.specials:
         baseKiMultiplier = (((200-characterKit.eball_mod_mid)/12)*(characterKit.specials[0][2]-12))+characterKit.eball_mod_mid
         # Adjusts base Ki Multiplier for URs
@@ -451,23 +403,23 @@ def calcStatKi(characterKit, totalBuff, onAttackStat, checkAttack, crit, superEf
             dbCursor.execute(f'''SELECT * FROM special_sets where id = {special[0]}''')
             saOutput = dbCursor.fetchall()
             print(f"Launching Super Attack: {saOutput[0][1]} at {special[1]} Ki")
-            calculateAttack(characterKit, special, newBuff, onAttackStat, checkAttack, crit, superEffective, additional)
+            calculateAttack(characterKit, special, newBuff, onAttackStat, checkAttack, atkBuff2, defBuff2, crit, superEffective, additional)
         if special[1] < 12 and characterKit.rarity != 'LR':
             kiATK = int(ATK * (characterKit.eball_mod_max/100)) # Apply Ki multiplier
             print(f'{kiATK} (With {characterKit.eball_mod_max}% Ki Multiplier)')
             print(f"Launching Super Attack: {saOutput[0][1]} at 12 Ki")
-            calculateAttack(characterKit, special, newBuff, onAttackStat, checkAttack, crit, superEffective, additional)
+            calculateAttack(characterKit, special, newBuff, onAttackStat, checkAttack, atkBuff2, defBuff2, crit, superEffective, additional)
         if special[1] < 18 and characterKit.rarity == 'LR':
             kiMultiplier = (((200-characterKit.eball_mod_mid)/12)*(18-12))+characterKit.eball_mod_mid
             kiATK = int(ATK * (kiMultiplier/100)) # Apply Ki multiplier
             print(f'{kiATK} (With {kiMultiplier}% Ki Multiplier)')
             print(f"Launching Super Attack: {saOutput[0][1]} at 18 Ki")
-            calculateAttack(characterKit, special, newBuff, onAttackStat, checkAttack, crit, superEffective, additional)
+            calculateAttack(characterKit, special, newBuff, onAttackStat, checkAttack, atkBuff2, defBuff2, crit, superEffective, additional)
         if characterKit.rarity == "LR":
             newBuff = [int(totalBuff[0] * 2), totalBuff[1]]
             print(f'| {newBuff[0]} | {newBuff[1]} | (With 200% Ki Multiplier)')
             print(f"Launching Super Attack: {saOutput[0][1]} at 24 Ki")
-            calculateAttack(characterKit, special, newBuff, onAttackStat, checkAttack, crit, superEffective, additional)
+            calculateAttack(characterKit, special, newBuff, onAttackStat, checkAttack, atkBuff2, defBuff2, crit, superEffective, additional)
     else:
         if characterKit.finish_skills:
             print("No Super Attacks found")
@@ -522,7 +474,7 @@ def calcStatKi(characterKit, totalBuff, onAttackStat, checkAttack, crit, superEf
         else:
             print("No Super Attacks found\n")
 
-def calcDomainStat(characterKit, totalBuff, onAttackStat, checkAttack, crit, superEffective, additional):
+def calcDomainStat(characterKit, totalBuff, onAttackStat, checkAttack, atkBuff2, defBuff2, crit, superEffective, additional):
     if characterKit.dokkan_fields and domain.get() == 1:
         domainATK = 0
         domainDEF = 0
@@ -542,11 +494,11 @@ def calcDomainStat(characterKit, totalBuff, onAttackStat, checkAttack, crit, sup
         domainOutput = dbCursor.fetchall()   
         if domainATK != 0 or domainDEF != 0:
             print(f'| {domainBuff[0]} | {domainBuff[1]} | (With {domainATK}%/{domainDEF}% Domain Skill Buff: {domainOutput[0][2]})')
-        calcStatKi(characterKit, domainBuff, onAttackStat, checkAttack, crit, superEffective, additional)
+        calcStatKi(characterKit, domainBuff, onAttackStat, checkAttack, atkBuff2, defBuff2, crit, superEffective, additional)
     else:
-        calcStatKi(characterKit, totalBuff, onAttackStat, checkAttack, crit, superEffective, additional)
+        calcStatKi(characterKit, totalBuff, onAttackStat, checkAttack, atkBuff2, defBuff2, crit, superEffective, additional)
 
-def calcActiveStat(characterKit, totalBuff, onAttackStat, checkAttack, crit, superEffective, additional):
+def calcActiveStat(characterKit, totalBuff, onAttackStat, checkAttack, atkBuff2, defBuff2, crit, superEffective, additional):
     atkBuff = 0
     defBuff = 0
     if characterKit.active_skill_set_id and active.get() == 1:
@@ -568,7 +520,7 @@ def calcActiveStat(characterKit, totalBuff, onAttackStat, checkAttack, crit, sup
         totalBuff[1] = int(totalBuff[1] * (1 + ((54+defBuff)/100)))
         superEffective = True
         print(f'| {totalBuff[0]} | {totalBuff[1]} | (With {54+atkBuff}%/{54+defBuff}% Active Skill Buff)')
-    calcDomainStat(characterKit, totalBuff, onAttackStat, checkAttack, crit, superEffective, additional)
+    calcDomainStat(characterKit, totalBuff, onAttackStat, checkAttack, atkBuff2, defBuff2, crit, superEffective, additional)
 
 def findCond(characterKit, dbOutput, cond):
     if not cond:
@@ -740,7 +692,7 @@ def calculateLinks(characterKit, dbCursor, partnerKit, crit):
    
 # Read through kit, sepearate lines based on activiation condition (SoT vs. 'on attack')
 # Then, calculate SoT attack and conditional SoT attack  
-def calculateMain2(characterKit, dbCursor, perBuff, flatBuff, condSoTStat, checkSoT, onAttackStat, checkAttack, crit, superEffective, additional):   
+def calculateMain2(characterKit, dbCursor, perBuff, flatBuff, condSoTStat, checkSoT, onAttackStat, checkAttack, atkBuff2, defBuff2, crit, superEffective, additional):   
     os.system('cls')
     totalBuff = [characterKit.atk_max, characterKit.def_max]
     perBuff2 = [0, 0]
@@ -841,10 +793,10 @@ def calculateMain2(characterKit, dbCursor, perBuff, flatBuff, condSoTStat, check
                     perBuff2[0] -= hpStat
                     perBuff2[1] -= hpStat
         elif condSoTStat[0][i][0].__contains__('# '):
-            incAttackBuff = int(condSoTStat[0][i][1]*check.get(ACTIVE))
+            incAttackBuff = int(condSoTStat[0][i][1]*check.get())
             if incAttackBuff > condSoTStat[0][i][2] and not condSoTStat[0][i][0].__contains__('Ki Sphere'):
                 incAttackBuff = condSoTStat[0][i][2]
-            match condSoTStat[1][i][3]:
+            match condSoTStat[0][i][3]:
                 case 0:
                     flatBuff2[0] += incAttackBuff
                     flatBuff2[1] += incAttackBuff
@@ -880,7 +832,7 @@ def calculateMain2(characterKit, dbCursor, perBuff, flatBuff, condSoTStat, check
                 case 2: perBuff2[0] += hpStat
                 case 3: perBuff2[0] -= hpStat
         elif condSoTStat[1][i][0].__contains__('# '):
-            incAttackBuff = int(condSoTStat[1][i][1]*check.get(ACTIVE))
+            incAttackBuff = int(condSoTStat[1][i][1]*check.get())
             if incAttackBuff > condSoTStat[1][i][2] and not condSoTStat[1][i][0].__contains__('Ki Sphere'):
                 incAttackBuff = condSoTStat[1][i][2]
             match condSoTStat[1][i][3]:
@@ -903,7 +855,7 @@ def calculateMain2(characterKit, dbCursor, perBuff, flatBuff, condSoTStat, check
                 case 2: perBuff2[1] += hpStat
                 case 3: perBuff2[1] -= hpStat
         elif condSoTStat[2][i][0].__contains__('# '):
-            incAttackBuff = int(condSoTStat[2][i][1]*check.get(ACTIVE))
+            incAttackBuff = int(condSoTStat[2][i][1]*check.get())
             if incAttackBuff > condSoTStat[2][i][2] and not condSoTStat[2][i][0].__contains__('Ki Sphere'):
                 incAttackBuff = condSoTStat[2][i][2]
             match condSoTStat[2][i][3]:
@@ -932,7 +884,7 @@ def calculateMain2(characterKit, dbCursor, perBuff, flatBuff, condSoTStat, check
             totalBuff[1] = int(totalBuff[1] * (1 + (linkBuffs[1]/100))) # Apply link buffs
             print(f'| {totalBuff[0]} | {totalBuff[1]} | (With {linkBuffs[0]}%/{linkBuffs[1]}% Link Skill Buff)')
     
-    calcActiveStat(characterKit, totalBuff, onAttackStat, checkAttack, crit, superEffective, additional)
+    calcActiveStat(characterKit, totalBuff, onAttackStat, checkAttack, atkBuff2, defBuff2, crit, superEffective, additional)
    
 # Helper method to get all unit details
 def getPartnerKit(partnerID):
@@ -980,6 +932,40 @@ def getPartnerKit(partnerID):
     if partnerID >= 4000000:
         partnerKit.name += (' (<->)')
     return partnerKit   
+
+def createSABox(special, dbCursor, additional, atkBuff2, defBuff2):
+    dbCursor.execute(f'''SELECT * FROM specials WHERE special_set_id = {special[0]} AND
+    (efficacy_type = 1 OR efficacy_type = 3) AND
+    (target_type = 1 OR target_type = 2)''')
+    atkOutput = dbCursor.fetchall()
+    
+    atkBuff = [0] * len(atkOutput)
+    for i, atkRaise in enumerate(atkOutput):
+        atkRaise2 = tk.IntVar()
+        atkBuff[i] = [0] * ((atkRaise[6]*additional)+1)
+        for j, buff in enumerate(range(1, (atkRaise[6]*additional)+2)):
+            atkBuff[i][j] = buff*atkRaise[9]
+        atkBuff2.append(atkRaise2)
+        atkBox = tk.OptionMenu(ATKRaiseFrame, atkRaise2, *atkBuff[i])
+        atkBox.pack()
+    
+    dbCursor.execute(f'''SELECT * FROM specials WHERE special_set_id = {special[0]} AND
+    (efficacy_type = 2 OR efficacy_type = 3) AND
+    (target_type = 1 OR target_type = 2)''')
+    defOutput = dbCursor.fetchall()
+    
+    defBuff = [0] * len(defOutput)
+    for i, defRaise in enumerate(defOutput):
+        defRaise2 = tk.IntVar()
+        defBuff[i] = [0] * ((defRaise[6]*additional)+1)
+        for j, buff in enumerate(range(1, (defRaise[6]*additional)+2)):
+            defBuff[i][j] = buff*defRaise[9]
+        defBox = tk.OptionMenu(DEFRaiseFrame, defRaise2, *defBuff[i])
+        defBuff2.append(defRaise2)
+        defBox.pack()
+    
+    print(atkBuff2[0])
+    return atkBuff2, defBuff2
 
 # Helper method to get all unit details
 def getKit(characterID, dbCursor, EZA):    
@@ -1755,19 +1741,18 @@ def calculateMain(characterKit, dbCursor):
                                 case 2: onAttackStat[2].append([f'{cond} ({cond2}) ({prob}% chance) (For {turn} turn(s))', dbOutput[0][12], dbOutput[0][13], dbOutput[0][7]])
             passive_skill_set_id += 1000000
     
-    # Dev Note: Switch Listbox to OptionMenu for simplicity
     for line in condSoTStat[0]:
-        if line[0].__contains__('# ') and not line[0].__contains__('HP remaining'):
-            incBox = Listbox(ATKDEFFrame)
+        if line[0].__contains__('# ') and not line[0].__contains__('HP remaining'):           
+            value_inside = tk.IntVar()
+            value_inside.set(line[0]) # Set the default value of the variable
             if line[0].__contains__('Ki Spheres obtained'):
-                for item in list(range(0, 24)):
-                    incBox.insert(END, item)
+                options_list = list(range(0, 24))
             else:
-                for item in list(range(0, int(line[2]/line[1])+1)):
-                    incBox.insert(END, item)
+                options_list = list(range(0, int(line[2]/line[1])+1))
                 if line[2] % line[1] != 0:
-                    incBox.insert(END, int(line[2]/line[1])+1)
-            checkSoT[0].append(incBox)
+                    options_list = list(range(0, int(line[2]/line[1])+2))
+            incBox = tk.OptionMenu(ATKDEFFrame, value_inside, *options_list)
+            checkSoT[0].append(value_inside)
             incBox.pack()
         elif line[0].__contains__(' HP remaining'):
             checkSoT[0].append(HP)
@@ -1778,17 +1763,16 @@ def calculateMain(characterKit, dbCursor):
             checkbox.pack(anchor=W)
     for line in condSoTStat[1]:
         if line[0].__contains__('# ') and not line[0].__contains__('HP remaining'):
-            incBox = Listbox(ATKFrame)
+            value_inside = tk.IntVar()
+            value_inside.set(line[0]) # Set the default value of the variable
             if line[0].__contains__('Ki Spheres obtained'):
-                for item in list(range(0, 24)):
-                    incBox.insert(END, item)
+                options_list = list(range(0, 24))
             else:
-                incBox = Listbox(ATKFrame)
-                for item in list(range(0, int(line[2]/line[1])+1)):
-                    incBox.insert(END, item)
+                options_list = list(range(0, int(line[2]/line[1])+1))
                 if line[2] % line[1] != 0:
-                    incBox.insert(END, int(line[2]/line[1])+1)
-            checkSoT[1].append(incBox)
+                    options_list = list(range(0, int(line[2]/line[1])+2))
+            incBox = tk.OptionMenu(ATKFrame, value_inside, *options_list)
+            checkSoT[1].append(value_inside)
             incBox.pack()
         elif line[0].__contains__(' HP remaining'):
             checkSoT[1].append(HP)
@@ -1799,17 +1783,16 @@ def calculateMain(characterKit, dbCursor):
             checkbox.pack(anchor=W)
     for line in condSoTStat[2]:
         if line[0].__contains__('# ') and not line[0].__contains__('HP remaining'):
-            incBox = Listbox(DEFFrame)
+            value_inside = tk.IntVar()
+            value_inside.set(line[0]) # Set the default value of the variable
             if line[0].__contains__('Ki Spheres obtained'):
-                for item in list(range(0, 24)):
-                    incBox.insert(END, item)
+                options_list = list(range(0, 24))
             else:
-                incBox = Listbox(DEFFrame)
-                for item in list(range(0, int(line[2]/line[1])+1)):
-                    incBox.insert(END, item)
+                options_list = list(range(0, int(line[2]/line[1])+1))
                 if line[2] % line[1] != 0:
-                    incBox.insert(END, int(line[2]/line[1])+1)
-            checkSoT[2].append(incBox)
+                    options_list = list(range(0, int(line[2]/line[1])+2))
+            incBox = tk.OptionMenu(DEFFrame, value_inside, *options_list)
+            checkSoT[2].append(value_inside)
             incBox.pack()
         elif line[0].__contains__(' HP remaining'):
             checkSoT[2].append(HP)
@@ -1820,16 +1803,16 @@ def calculateMain(characterKit, dbCursor):
             checkbox.pack(anchor=W)
     for line in onAttackStat[0]:
         if line[0].__contains__('# ') and not line[0].__contains__('HP remaining'):
-            incBox = Listbox(ATKDEFFrame2)
+            value_inside = tk.IntVar()
+            value_inside.set(line[0]) # Set the default value of the variable
             if line[0].__contains__('Ki Spheres obtained'):
-                for item in list(range(0, 24)):
-                    incBox.insert(END, item)
+                options_list = list(range(0, 24))
             else:
-                for item in list(range(0, int(line[2]/line[1])+1)):
-                    incBox.insert(END, item)
+                options_list = list(range(0, int(line[2]/line[1])+1))
                 if line[2] % line[1] != 0:
-                    incBox.insert(END, int(line[2]/line[1])+1)
-            checkAttack[0].append(incBox)
+                    options_list = list(range(0, int(line[2]/line[1])+2))
+            incBox = tk.OptionMenu(ATKDEFFrame2, value_inside, *options_list)
+            checkAttack[0].append(value_inside)
             incBox.pack()
         elif line[0].__contains__(' HP remaining'):
             checkAttack[0].append(HP)
@@ -1840,16 +1823,16 @@ def calculateMain(characterKit, dbCursor):
             checkbox.pack(anchor=W)
     for line in onAttackStat[1]:
         if line[0].__contains__('# ') and not line[0].__contains__('HP remaining'):
-            incBox = Listbox(ATKFrame2)
+            value_inside = tk.IntVar()
+            value_inside.set(line[0]) # Set the default value of the variable
             if line[0].__contains__('Ki Spheres obtained'):
-                for item in list(range(0, 24)):
-                    incBox.insert(END, item)
+                options_list = list(range(0, 24))
             else:
-                for item in list(range(0, int(line[2]/line[1])+1)):
-                    incBox.insert(END, item)
+                options_list = list(range(0, int(line[2]/line[1])+1))
                 if line[2] % line[1] != 0:
-                    incBox.insert(END, int(line[2]/line[1])+1)
-            checkAttack[1].append(incBox)
+                    options_list = list(range(0, int(line[2]/line[1])+2))
+            incBox = tk.OptionMenu(ATKFrame2, value_inside, *options_list)
+            checkAttack[1].append(value_inside)
             incBox.pack()
         elif line[0].__contains__(' HP remaining'):
             checkAttack[1].append(HP)
@@ -1860,16 +1843,16 @@ def calculateMain(characterKit, dbCursor):
             checkbox.pack(anchor=W)
     for line in onAttackStat[2]:
         if line[0].__contains__('# ') and not line[0].__contains__('HP remaining'):
-            incBox = Listbox(DEFFrame2)
+            value_inside = tk.IntVar()
+            value_inside.set(line[0]) # Set the default value of the variable
             if line[0].__contains__('Ki Spheres obtained'):
-                for item in list(range(0, 24)):
-                    incBox.insert(END, item)
+                options_list = list(range(0, 24))
             else:
-                for item in list(range(0, int(line[2]/line[1])+1)):
-                    incBox.insert(END, item)
+                options_list = list(range(0, int(line[2]/line[1])+1))
                 if line[2] % line[1] != 0:
-                    incBox.insert(END, int(line[2]/line[1])+1)
-            checkAttack[2].append(incBox)
+                    options_list = list(range(0, int(line[2]/line[1])+2))
+            incBox = tk.OptionMenu(DEFFrame2, value_inside, *options_list)
+            checkAttack[2].append(value_inside)
             incBox.pack()
         elif line[0].__contains__(' HP remaining'):
             checkAttack[2].append(HP)
@@ -1951,8 +1934,24 @@ def main():
     
     perBuff, flatBuff, condSoTStat, checkSoT, onAttackStat, checkAttack, crit, superEffective, additional = calculateMain(mainUnit, dbCursor)
     
+    # Clears all stat frames
+    ATKRaiseFrame.winfo_toplevel().wm_geometry("")
+    for widget in ATKRaiseFrame.winfo_children():
+        widget.destroy()
+    ATKRaiseFrame.pack_forget()
+    
+    DEFRaiseFrame.winfo_toplevel().wm_geometry("")
+    for widget in DEFRaiseFrame.winfo_children():
+        widget.destroy()
+    DEFRaiseFrame.pack_forget()
+
+    atkBuff2 = []
+    defBuff2 = []
+    for special in mainUnit.specials:
+        atkBuff2, defBuff2 = createSABox(special, dbCursor, additional, atkBuff2, defBuff2)
+    
     # Button to trigger the function
-    calcButton = tk.Button(root, text="Calculate", command= lambda:calculateMain2(mainUnit, dbCursor, perBuff, flatBuff, condSoTStat, checkSoT, onAttackStat, checkAttack, crit, superEffective, additional))
+    calcButton = tk.Button(root, text="Calculate", command= lambda:calculateMain2(mainUnit, dbCursor, perBuff, flatBuff, condSoTStat, checkSoT, onAttackStat, checkAttack, atkBuff2, defBuff2, crit, superEffective, additional))
     calcButton.grid(row=10, column=1, padx=5, pady=5)
     
     #if mainUnit.transformation:
@@ -2056,6 +2055,11 @@ ATKFrame2 = tk.Frame(root, highlightbackground="black", highlightthickness=1)
 ATKFrame2.grid(row=9, column=1, padx=5, pady=5)
 DEFFrame2 = tk.Frame(root, highlightbackground="black", highlightthickness=1)
 DEFFrame2.grid(row=9, column=2, padx=5, pady=5)
+
+ATKRaiseFrame = tk.Frame(root, highlightbackground="black", highlightthickness=1)
+ATKRaiseFrame.grid(row=10, column=0, padx=5, pady=5)
+DEFRaiseFrame = tk.Frame(root, highlightbackground="black", highlightthickness=1)
+DEFRaiseFrame.grid(row=10, column=2, padx=5, pady=5)
 
 # Button for closing
 exitButton = Button(root, text="Exit", command=root.destroy)
