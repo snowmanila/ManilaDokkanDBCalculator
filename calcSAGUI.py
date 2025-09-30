@@ -13,7 +13,7 @@ from tkinter import *
 from tkinter import ttk
 from tkinter import scrolledtext
         
-# Written by snowmanila/manilamania (Updated: 9/22/25)
+# Written by snowmanila/manilamania (Updated: 9/29/25)
 
 # Class for keeping track of a unit and its kit
 @dataclass
@@ -96,22 +96,15 @@ class Partner:
         self.element = element
         self.card_links = card_links
 
-# Units that do not fit in terminal:
-# - SEZA LR INT SSJ2 Gohan
-# - EZA UR PHY Future Android #17
-# - EZA UR TEQ Android #18
-
 # Dev Note: Adjust stacking patterns between:
-# Units with multiple SAs + multiple stacking patterns (STR Perfect Cell)
-# Units with perm + temp raises (TEQ LR Dragon Fist EZA)
 # Units with stacking base + temp transformed forms (TEQ Ultimate Gohan?)
 # Units with temp base + stacking transformed forms (AGL Turles)
 # Units with stacking base + transformed forms (INT UI Goku)
 
-# Dev Note: Adjust AGL LR Gotenks
-# Dev Note: Adjust TEQ LR Broly's EZA stacks (Multi-select?)
-    
+# Dev Note: Add SA transformation effects/bonuses (AGL Gotenks, INT Hercule, etc.)
 def calcATKSA(characterKit, dbCursor, special, totalStat, atkMultiplier, defMultiplier, crit, superEffective, additional):    
+    print(f'Raises ATK by {atkMultiplier}%, DEF by {defMultiplier}%')
+    
     if characterKit.active_skill_set_id:
         dbCursor.execute(f'''SELECT * FROM active_skill_sets WHERE id = {characterKit.active_skill_set_id}''')
         activeOutput = dbCursor.fetchall()
@@ -134,16 +127,10 @@ def calcATKSA(characterKit, dbCursor, special, totalStat, atkMultiplier, defMult
     dbCursor.execute(f'''SELECT * FROM special_sets where id = {special[0]}''')
     dbOutput = dbCursor.fetchall()
     saMultiplier = 100+dbOutput[0][5]+(dbOutput[0][6]*(characterKit.skill_lv_max-1))
-    
-    # Base SA multiplier (For additionals)
-    dbCursor.execute(f'''SELECT * FROM special_sets where id = {characterKit.specials[0][0]}''')
-    dbOutput = dbCursor.fetchall()
-    baseMultiplier = 100+dbOutput[0][5]+(dbOutput[0][6]*(characterKit.skill_lv_max-1))
             
     # Adds HiPo SA boost for SSR/UR/LR characters
     if characterKit.rarity == 'UR' or characterKit.rarity == 'LR':
         saMultiplier += 75
-        baseMultiplier += 75
         
     dbCursor.execute(f'''SELECT * FROM card_specials WHERE special_set_id = {special[0]}''')
     dbOutput = dbCursor.fetchall()
@@ -167,20 +154,6 @@ def calcATKSA(characterKit, dbCursor, special, totalStat, atkMultiplier, defMult
         #    case 3:
         #        
         #    case 63:
-        
-    dbCursor.execute(f'''SELECT * FROM card_specials WHERE special_set_id = {characterKit.specials[0][0]}''')
-    dbOutput = dbCursor.fetchall()
-    
-    if dbOutput[0][9]:
-        dbCursor.execute(f'''SELECT * FROM special_bonuses WHERE id = {dbOutput[0][9]}''')
-        bonusOutput1 = dbCursor.fetchall()
-        if bonusOutput1[0][12] == 100:
-            saMultiplier += bonusOutput1[0][9]
-    if dbOutput[0][12]:
-        dbCursor.execute(f'''SELECT * FROM special_bonuses WHERE id = {dbOutput[0][12]}''')
-        bonusOutput2 = dbCursor.fetchall()
-        if bonusOutput2[0][12] == 100:
-            saMultiplier += bonusOutput1[0][12]
 
     finalATK = int(totalStat[0]*((saMultiplier+atkMultiplier)/100))
     if crit:
@@ -189,17 +162,6 @@ def calcATKSA(characterKit, dbCursor, special, totalStat, atkMultiplier, defMult
         print(f'Super Attack APT ({saMultiplier}%): {finalATK} (Super Effective: {int(finalATK*1.5)})')
     else:
         print(f'Super Attack APT ({saMultiplier}%): {finalATK}')
-    
-    if not (characterKit.specials[0][0] == special[0]):
-        dbCursor.execute(f'''SELECT * FROM card_specials WHERE special_set_id = {characterKit.specials[0][0]}''')
-        ki = dbCursor.fetchall()[0][6]
-        dbCursor.execute(f'''SELECT * FROM specials WHERE special_set_id = {characterKit.specials[0][0]} AND 
-        (target_type = 1 or target_type = 2 or target_type = 12 or target_type = 13)''')
-        specialPart = dbCursor.fetchall()
-        if specialPart:
-            for turn in range(1, (specialPart[0][6]*additional)+1):
-                finalATK = int(totalStat[0]*((baseMultiplier+atkMultiplier+(specialPart[0][9]*turn))/100))
-                print(f'Additional Super Attack {turn} ({ki} Ki): {finalATK}')
     
     if characterKit.counter != 0:
         counter = characterKit.counter
@@ -257,6 +219,8 @@ def calcATKSA(characterKit, dbCursor, special, totalStat, atkMultiplier, defMult
                             print(f"Finish Effect APT (With {i} Super Attack, {finishMultiplier*100}%): {str(int(ATK*(1+ATKmultiplier+(baseATKmultiplier*i))*finishMultiplier))} (Super Effective: {str(int(ATK*(1+ATKmultiplier+(baseATKmultiplier*i))*finishMultiplier*1.5))})")
                         else:
                             print(f"Finish Effect APT (With {i} Super Attack, {finishMultiplier*100}%): {str(int(ATK*(1+ATKmultiplier+(baseATKmultiplier*i))*finishMultiplier))}")'''
+    print('----------------------------------------------------')
+    print(f'Defense: {int(totalStat[1]*(1+(defMultiplier/100)))}')
     print()
 
 def calculateAttack(characterKit, special, totalBuff, onAttackStat, checkAttack, atkBuff2, defBuff2, crit, superEffective, additional):
@@ -358,7 +322,7 @@ def calculateAttack(characterKit, special, totalBuff, onAttackStat, checkAttack,
                 case 2: perBuff[1] += onAttackStat[2][i][1]
                 case 3: perBuff[1] -= onAttackStat[2][i][1]
     
-    totalBuff = [int(totalBuff[0] * (1 + (perBuff[0]/100))), int(totalBuff[1] * (1 + (perBuff[0]/100)))] # Apply 'on attack' percentage buffs
+    totalBuff = [int(totalBuff[0] * (1 + (perBuff[0]/100))), int(totalBuff[1] * (1 + (perBuff[1]/100)))] # Apply 'on attack' percentage buffs
     print(f"| {totalBuff[0]} | {totalBuff[1]} | (With {perBuff[0]}%/{perBuff[1]}% 'On Attack' Passive Buff)")
     totalBuff[0] += int(flatBuff[0]) # Apply 'on attack' percent buffs
     totalBuff[1] += int(flatBuff[1]) # Apply 'on attack' flat buffs
@@ -964,7 +928,6 @@ def createSABox(special, dbCursor, additional, atkBuff2, defBuff2):
         defBuff2.append(defRaise2)
         defBox.pack()
     
-    print(atkBuff2[0])
     return atkBuff2, defBuff2
 
 # Helper method to get all unit details
