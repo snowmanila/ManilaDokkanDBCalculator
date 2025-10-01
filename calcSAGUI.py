@@ -177,48 +177,41 @@ def calcATKSA(characterKit, dbCursor, special, totalStat, atkMultiplier, defMult
             print(f"Counter APT (Before SA, {counter}%): {int(totalStat[0]*(counter/100))}")
             for i in range(1, additional+2):
                 print(f"Counter APT (After SA {i}, {counter}%): {int(totalStat[0]*((counter+(atkMultiplier*i))/100))}")
-                    
-        '''if characterKit.finish_skills:
-            # Removing buffs then recalculating with finish skill passive buff
-            # 'When the Finish Effect is activated'
-            ATK -= saFlatBuff
-            ATK /= (1 + (saPerBuff/100))
-            
-            atkBuff = characterKit.finish_skills[len(characterKit.finish_skills)-1].split('+')[1]
-            if atkBuff.__contains__('%'):
-                saPerBuff += int(atkBuff.split('%')[0])
-            else:
-                saFlatBuff += int(atkBuff.split(' ')[0])
-            
-            ATK = int(ATK * (1 + (saPerBuff/100))) # Apply 'on attack' percentage buffs
-            print(f"{ATK} (With {saPerBuff}% Finish Skill Buff)")
-            ATK = int(ATK + saFlatBuff) # Apply 'on attack' flat buffs
-            print(f"{ATK} (With {saFlatBuff} Flat Finish Skill Buff)")
-            
-            for finish_skill in characterKit.finish_skills[:-1]:
-                finishMultiplier = 4 # Ferocious multiplier by default
-                if characterKit.finish_skills[1].__contains__('super-intense damage'):
-                    finishMultiplier = 5
-                elif characterKit.finish_skills[1].__contains__('ultimate damage'):
-                    finishMultiplier = 5.5
-                elif characterKit.finish_skills[1].__contains__('super-ultimate damage'):
-                    finishMultiplier = 7.5
-                
-                for i in range(0, turnLimit):
-                    if i == 0:
-                        if crit:
-                            print(f"Finish Effect APT (With {i} Super Attack, {finishMultiplier*100}%): {str(int(ATK*finishMultiplier))} (Crit: {str(int(ATK*finishMultiplier*1.9))})")
-                        elif superEffective:
-                            print(f"Finish Effect APT (With {i} Super Attack, {finishMultiplier*100}%): {str(int(ATK*finishMultiplier))} (Super Effective: {str(int(ATK*finishMultiplier*1.9))})")
-                        else:
-                            print(f"Finish Effect APT (With {i} Super Attack, {finishMultiplier*100}%): {str(int(ATK*finishMultiplier))}")
+    
+    for finish_skill in characterKit.finish_skills:
+        dbCursor.execute(f'''SELECT * FROM finish_skill_sets WHERE id = {finish_skill}''')
+        finishName = dbCursor.fetchall()
+        
+        dbCursor.execute(f'''SELECT * FROM finish_specials WHERE id = {finishName[0][9]}''')
+        finishMultiplier = dbCursor.fetchall()
+        if finishMultiplier:
+            finishMultiplier = finishMultiplier[0][1]
+        else:
+            continue
+        
+        finishAPT = int(totalStat[0]*((finishMultiplier+atkMultiplier)/100))
+        if crit:
+            print(f'Finish Skill APT ({finishName[0][1]}, {finishMultiplier}%): {finishAPT} (Crit: {int(finishAPT*1.9)})')
+        elif superEffective:
+            print(f'Finish Skill APT ({finishName[0][1]}, {finishMultiplier}%): {finishAPT} (Super Effective: {int(finishAPT*1.5)})')
+        else:
+            print(f'Finish Skill APT ({finishName[0][1]}, {finishMultiplier}%): {finishAPT}')
+        dbCursor.execute(f'''SELECT * FROM finish_skills WHERE finish_skill_set_id = {finish_skill}''')
+        dbOutput = dbCursor.fetchall()
+        for skillOutput in dbOutput:
+            if skillOutput[6] == 118:
+                finishPart = skillOutput[8].split(', ')
+                finishEnd = int(finishPart[1])
+                finishInc = int(finishPart[0][1:])
+                for i in range(finishInc, finishEnd, finishInc):
+                    finishAPT = int(totalStat[0]*(1+((finishMultiplier+atkMultiplier+i)/100)))
+                    if crit:
+                        print(f'Finish Skill APT ({finishName[0][1]}, {finishMultiplier+i}%): {finishAPT} (Crit: {int(finishAPT*1.9)})')
+                    elif superEffective:
+                        print(f'Finish Skill APT ({finishName[0][1]}, {finishMultiplier+i}%): {finishAPT} (Super Effective: {int(finishAPT*1.5)})')
                     else:
-                        if crit:
-                            print(f"Finish Effect APT (With {i} Super Attack, {finishMultiplier*100}%): {str(int(ATK*(1+ATKmultiplier+(baseATKmultiplier*i))*finishMultiplier))} (Crit: {str(int(ATK*(1+ATKmultiplier+(baseATKmultiplier*i))*finishMultiplier*1.9))})")
-                        elif superEffective:
-                            print(f"Finish Effect APT (With {i} Super Attack, {finishMultiplier*100}%): {str(int(ATK*(1+ATKmultiplier+(baseATKmultiplier*i))*finishMultiplier))} (Super Effective: {str(int(ATK*(1+ATKmultiplier+(baseATKmultiplier*i))*finishMultiplier*1.5))})")
-                        else:
-                            print(f"Finish Effect APT (With {i} Super Attack, {finishMultiplier*100}%): {str(int(ATK*(1+ATKmultiplier+(baseATKmultiplier*i))*finishMultiplier))}")'''
+                        print(f'Finish Skill APT ({finishName[0][1]}, {finishMultiplier+i}%): {finishAPT}')
+    
     print('----------------------------------------------------')
     print(f'Defense: {int(totalStat[1]*(1+(defMultiplier/100)))}')
     print()
@@ -338,105 +331,53 @@ def calculateAttack(characterKit, special, totalBuff, onAttackStat, checkAttack,
     
     calcATKSA(characterKit, dbCursor, special, totalBuff, atkMultiplier, defMultiplier, crit, superEffective, additional)
 
-
 def calcStatKi(characterKit, totalBuff, onAttackStat, checkAttack, atkBuff2, defBuff2, crit, superEffective, additional):
-    if characterKit.specials:
-        baseKiMultiplier = (((200-characterKit.eball_mod_mid)/12)*(characterKit.specials[0][2]-12))+characterKit.eball_mod_mid
-        # Adjusts base Ki Multiplier for URs
-        if characterKit.rarity == 'UR':
-            baseKiMultiplier = (characterKit.eball_mod_max/24)*(12+characterKit.specials[0][2])
-        baseATK = int(totalBuff[0] * (baseKiMultiplier/100)) # Apply base Ki multiplier
+    baseKiMultiplier = (((200-characterKit.eball_mod_mid)/12)*(characterKit.specials[0][2]-12))+characterKit.eball_mod_mid
+    # Adjusts base Ki Multiplier for URs
+    if characterKit.rarity == 'UR':
+        baseKiMultiplier = (characterKit.eball_mod_max/24)*(12+characterKit.specials[0][2])
+    baseATK = int(totalBuff[0] * (baseKiMultiplier/100)) # Apply base Ki multiplier
+    
+    for special in characterKit.specials:        
+        dbCursor.execute(f'''SELECT * FROM card_specials where id = {special[0]}''')
+        dbOutput = dbCursor.fetchall()
+        kiMultiplier = (((200-characterKit.eball_mod_mid)/12)*(special[1]-12))+characterKit.eball_mod_mid
+        if special[2] == 12:
+            if characterKit.rarity != 'LR':
+                kiMultiplier = characterKit.eball_mod_max
+            else:
+                kiMultiplier = characterKit.eball_mod_mid
+        elif special[2] < 12 and characterKit.rarity != 'LR':
+            # (max ki multi - 1)/ki needed to reach 12ki from not being in negative ki multi*the ki obtained
+            # for example, to find Gotenks 11ki its (1.4-1)/9*8
+            # - u/kariru2, Reddit
+            kiMultiplier = (characterKit.eball_mod_max/24)*(12+special[1])
+        newBuff = [int(totalBuff[0] * (kiMultiplier/100)), totalBuff[1]] # Apply Ki multiplier
+        print(f'| {newBuff[0]} | {newBuff[1]} | (With {kiMultiplier}% Ki Multiplier)')
         
-        for special in characterKit.specials:
-            dbCursor.execute(f'''SELECT * FROM card_specials where id = {special[0]}''')
-            dbOutput = dbCursor.fetchall()
-            kiMultiplier = (((200-characterKit.eball_mod_mid)/12)*(special[1]-12))+characterKit.eball_mod_mid
-            if special[2] == 12:
-                if characterKit.rarity != 'LR':
-                    kiMultiplier = characterKit.eball_mod_max
-                else:
-                    kiMultiplier = characterKit.eball_mod_mid
-            elif special[2] < 12 and characterKit.rarity != 'LR':
-                # (max ki multi - 1)/ki needed to reach 12ki from not being in negative ki multi*the ki obtained
-                # for example, to find Gotenks 11ki its (1.4-1)/9*8
-                # - u/kariru2, Reddit
-                kiMultiplier = (characterKit.eball_mod_max/24)*(12+special[1])
-            newBuff = [int(totalBuff[0] * (kiMultiplier/100)), totalBuff[1]] # Apply Ki multiplier
-            print(f'| {newBuff[0]} | {newBuff[1]} | (With {kiMultiplier}% Ki Multiplier)')
-            
-            dbCursor.execute(f'''SELECT * FROM special_sets where id = {special[0]}''')
-            saOutput = dbCursor.fetchall()
-            print(f"Launching Super Attack: {saOutput[0][1]} at {special[1]} Ki")
-            calculateAttack(characterKit, special, newBuff, onAttackStat, checkAttack, atkBuff2, defBuff2, crit, superEffective, additional)
-        if special[1] < 12 and characterKit.rarity != 'LR':
-            kiATK = int(ATK * (characterKit.eball_mod_max/100)) # Apply Ki multiplier
-            print(f'{kiATK} (With {characterKit.eball_mod_max}% Ki Multiplier)')
-            print(f"Launching Super Attack: {saOutput[0][1]} at 12 Ki")
-            calculateAttack(characterKit, special, newBuff, onAttackStat, checkAttack, atkBuff2, defBuff2, crit, superEffective, additional)
-        if special[1] < 18 and characterKit.rarity == 'LR':
-            kiMultiplier = (((200-characterKit.eball_mod_mid)/12)*(18-12))+characterKit.eball_mod_mid
-            kiATK = int(ATK * (kiMultiplier/100)) # Apply Ki multiplier
-            print(f'{kiATK} (With {kiMultiplier}% Ki Multiplier)')
-            print(f"Launching Super Attack: {saOutput[0][1]} at 18 Ki")
-            calculateAttack(characterKit, special, newBuff, onAttackStat, checkAttack, atkBuff2, defBuff2, crit, superEffective, additional)
-        if characterKit.rarity == "LR":
-            newBuff = [int(totalBuff[0] * 2), totalBuff[1]]
-            print(f'| {newBuff[0]} | {newBuff[1]} | (With 200% Ki Multiplier)')
-            print(f"Launching Super Attack: {saOutput[0][1]} at 24 Ki")
-            calculateAttack(characterKit, special, newBuff, onAttackStat, checkAttack, atkBuff2, defBuff2, crit, superEffective, additional)
-    else:
-        if characterKit.finish_skills:
-            print("No Super Attacks found")
-            saPerBuff = 0
-            saFlatBuff = 0
-            atkBuff = characterKit.finish_skills[len(characterKit.finish_skills)-1].split('+')[1]
-            if atkBuff.__contains__('%'):
-                saPerBuff += int(atkBuff.split('%')[0])
-            else:
-                saFlatBuff += int(atkBuff.split(' ')[0])
-            
-            if characterKit.rarity == "LR":
-                kiATK = int(ATK * 2) # Apply Ki multiplier
-                print(f'{kiATK} (With 200% Ki Multiplier)')
-            else:
-                print(characterKit.eball_mod_max)
-                kiATK = int(ATK * (characterKit.eball_mod_max/100)) # Apply Ki multiplier
-                print(f'{kiATK} (With {characterKit.eball_mod_max}% Ki Multiplier)')
-            
-            ATK = int(ATK * (1 + (saPerBuff/100))) # Apply 'on attack' percentage buffs
-            print(f"{ATK} (With {saPerBuff}% 'On Attack' Passive Buff)")
-            ATK = int(ATK + saFlatBuff) # Apply 'on attack' flat buffs
-            print(f"{ATK} (With {saFlatBuff} Flat 'On Attack' Passive Buff)")
-            
-            for finish_skill in characterKit.finish_skills[:-1]:
-                finishMultiplier = 4 # Ferocious multiplier by default
-                if characterKit.finish_skills[1].__contains__('super-intense damage'):
-                    finishMultiplier = 5
-                elif characterKit.finish_skills[1].__contains__('ultimate damage'):
-                    finishMultiplier = 5.5
-                elif characterKit.finish_skills[1].__contains__('super-ultimate damage'):
-                    finishMultiplier = 7.5
-                
-                charge = 1
-                if finish_skill[1].__contains__('charge count'):
-                    atkBuff = finish_skill[1].split('by ')[1]
-                    for i in range(0, 160, 10):
-                        charge += ((int(atkBuff.split('%')[0])*i)/100)
-                        if crit:
-                            print(f"Finish Effect APT (With {i} Charge, {finishMultiplier}%): {str(int(ATK*charge*finishMultiplier))} (Crit: {str(int(ATK*charge*finishMultiplier*1.9))})")
-                        elif superEffective:
-                            print(f"Finish Effect APT (With {i} Charge, {finishMultiplier}%): {str(int(ATK*charge*finishMultiplier))} (Super Effective: {str(int(ATK*charge*finishMultiplier*1.5))})")
-                        else:
-                            print(f"Finish Effect APT (With {i} Charge, {finishMultiplier}%): {str(int(ATK*charge*finishMultiplier))}")
-                else:
-                    if crit:
-                        print(f"Finish Effect APT ({finishMultiplier*100}%): {str(int(ATK*charge*finishMultiplier))} (Crit: {str(int(ATK*charge*finishMultiplier*1.9))})")
-                    elif superEffective:
-                        print(f"Finish Effect APT ({finishMultiplier*100}%): {str(int(ATK*charge*finishMultiplier))} (Super Effective: {str(int(ATK*charge*finishMultiplier*1.5))})")
-                    else:
-                        print(f"Finish Effect APT ({finishMultiplier*100}%): {str(int(ATK*charge*finishMultiplier))}")
-        else:
-            print("No Super Attacks found\n")
+        dbCursor.execute(f'''SELECT * FROM special_sets where id = {special[0]}''')
+        saOutput = dbCursor.fetchall()
+        print(f"Launching Super Attack: {saOutput[0][1]} at {special[1]} Ki")
+        calculateAttack(characterKit, special, newBuff, onAttackStat, checkAttack, atkBuff2, defBuff2, crit, superEffective, additional)
+    if special[1] < 12 and characterKit.rarity != 'LR':        
+        newBuff = [int(totalBuff[0] * (characterKit.eball_mod_max/100)), totalBuff[1]] # Apply Ki multiplier
+        print(f'| {newBuff[0]} | {newBuff[1]} | (With {characterKit.eball_mod_max}% Ki Multiplier)')
+        
+        print(f"Launching Super Attack: {saOutput[0][1]} at 12 Ki")
+        calculateAttack(characterKit, special, newBuff, onAttackStat, checkAttack, atkBuff2, defBuff2, crit, superEffective, additional)
+    if special[1] < 18 and characterKit.rarity == 'LR':
+        kiMultiplier = (((200-characterKit.eball_mod_mid)/12)*(18-12))+characterKit.eball_mod_mid
+        newBuff = [int(totalBuff[0] * (kiMultiplier/100)), totalBuff[1]] # Apply Ki multiplier
+        print(f'| {newBuff[0]} | {newBuff[1]} | (With {kiMultiplier}% Ki Multiplier)')
+        
+        print(f"Launching Super Attack: {saOutput[0][1]} at 18 Ki")
+        calculateAttack(characterKit, special, newBuff, onAttackStat, checkAttack, atkBuff2, defBuff2, crit, superEffective, additional)
+    if characterKit.rarity == "LR":
+        newBuff = [int(totalBuff[0] * 2), totalBuff[1]]
+        print(f'| {newBuff[0]} | {newBuff[1]} | (With 200% Ki Multiplier)')
+        
+        print(f"Launching Super Attack: {saOutput[0][1]} at 24 Ki")
+        calculateAttack(characterKit, special, newBuff, onAttackStat, checkAttack, atkBuff2, defBuff2, crit, superEffective, additional)
 
 def calcDomainStat(characterKit, totalBuff, onAttackStat, checkAttack, atkBuff2, defBuff2, crit, superEffective, additional):
     if characterKit.dokkan_fields and domain.get() == 1:
@@ -530,9 +471,8 @@ def findCond(characterKit, dbOutput, cond):
         case 28: return f'When there is a {skillOutput[0][2]} Type ally on rotation'
         case 29: return f'When facing "{skillOutput[0][2]}" as an enemy'
         case 30: return 'When guard is activated'
-        case 31: return
-        case 32: return
-        case 33: return 
+        case 31: return 'When there are three enemy attacks'
+        case 32: return f'When there is a {skillOutput[0][2]} Ki Sphere on the board'
         case 33: return f'When HP is between {skillOutput[0][2]}% and {skillOutput[0][3]}%'
         case 34:
             dbCursor.execute(f'''SELECT * FROM card_categories where id = {skillOutput[0][3]}''')
@@ -540,8 +480,15 @@ def findCond(characterKit, dbOutput, cond):
             if skillOutput[0][2] == 0:  return f'With {skillOutput[0][4]} "{category}" allies on the team'
             elif skillOutput[0][2] == 1: return f'With {skillOutput[0][4]} "{category}" enemy'
             elif skillOutput[0][2] == 2: return f'With {skillOutput[0][4]} "{category}" allies on rotation' 
-        case 37: return f'When HP is below percent, battle has past turn number'
-        case 38: return 'With status effect'
+        case 35: return f'When the team includes all five [element] types'
+        case 36: return f'When HP is above {skillOutput[0][2]}%, starting from turn {skillOutput[0][3]}'
+        case 37: return f'When HP is below {skillOutput[0][2]}%, starting from turn {skillOutput[0][3]}'
+        case 38:
+            match skillOutput[0][2]:
+                case 16: return "When the target enemy is in 'ATK Down' status"
+                case 32: return "When the target enemy is in 'ATK Down' status"
+                case 48: return "When the target enemy is stunned"
+                case _: return "When the target enemy is [status effect]"
         case 39:
             if skillOutput[0][2] == 32: return f'When facing a Super Class enemy'
             return 'When facing an Extreme Class enemy'
@@ -562,44 +509,40 @@ def findCond(characterKit, dbOutput, cond):
             elif skillOutput[0][2] == 3: return f'{skillOutput[0][2]} attacks received'
             elif skillOutput[0][2] == 4: return f'Guard activated {skillOutput[0][2]} times'
             elif skillOutput[0][2] == 5: return f'{skillOutput[0][2]} attacks evaded'
-        case 45: return ''
+        case 45: return 'When [card is in target, category and unique info relations]'
         case 46:
             if skillOutput[0][3] == 32:
-                #if skillOutput[0][2] == 0: return 'When facing an Extreme Class enemy'
-                if skillOutput[0][2] == 1: return 'When facing an Super Class enemy'
-                #elif skillOutput[0][2] == 2:return 'When facing an Extreme Class enemy'
+                if skillOutput[0][2] == 0: return f'When there are {skillOutput[0][4]} Super Class allies on the team'
+                elif skillOutput[0][2] == 1: return f'When there are {skillOutput[0][4]} Super Class enemies'
+                elif skillOutput[0][2] == 2: return f'When there are {skillOutput[0][4]} Super Class allies on rotation'
             elif skillOutput[0][3] == 64:
-                #if skillOutput[0][2] == 0: return 'When facing an Extreme Class enemy'
-                if skillOutput[0][2] == 1: return 'When facing an Extreme Class enemy'
-                #elif skillOutput[0][2] == 2: return 'When facing an Extreme Class enemy'
-            #0 for deck; 1 for enemy; 2 for ally attacking in the same turn	
-            #if skillOutput[0][2] == 32:
-            #    return f'When facing a Super Class enemy'
-            #return 'When facing an Extreme Class enemy'
-            
-            
-            return ''
-        case 47: return 'After revival'
-        case 48: return ''
-        case 49: return ''
+                if skillOutput[0][2] == 0: return f'When there are {skillOutput[0][4]} Extreme Class allies on the team'
+                elif skillOutput[0][2] == 1: return f'When there are {skillOutput[0][4]} Extreme Class enemies'
+                elif skillOutput[0][2] == 2: return f'When there are {skillOutput[0][4]} Extreme Class allies on rotation'
+        case 47: return "After the character's Revival Skill is activated"
+        case 48: return '[isAttackedByEnemyWhichTakeSpecialDamage]'
+        case 49: return 'When receiving a [special] Super Attack'
+        case 50: return '[hasPlayedPassiveSkillEffect]'
         case 51: return f'For {skillOutput[0][2]} turn(s) from entry'
-        case 52: return ''
-        case 53: return ''
-        case 54: return ''
+        case 52: return '[chargeCount]'
+        case 53: return '[inStandbyMode]'
+        case 54: return "When the character or an ally attacking in the same turn is KO'd"
         case 55: return f'{skillOutput[0][2]} turn(s) passed'
-        case 56: return ''
-        case 57:
-            characterKit.dokkan_fields = skillOutput[0][2]
-            return '57'
-        case 58: return ''
-        case 59: return ''
-        case 60: return ''
+        case 56: return 'When receiving a normal attack'
+        case 57: return f'When the Domain {skillOutput[0][2]} is active'
+        case 58:
+            if skillOutput[0][2] == 1: return 'When a Domain is active'
+            return 'When a Domain is not active'
+        case 59:
+            if skillOutput[0][2] == 1: return 'When the character is Super Class'
+            return 'When the character is Extreme Class'
+        case 60: return 'When [the character is in a sub target type set]'
         case 61: return 'After receiving an attack'
-        case 62: return ''
-        case 63: return ''
-        case 64: return ''
-        case 65: return ''
-        case 66: return ''
+        case 62: return f'When [the attacker has a specific element type bitset]'
+        case 63: return f'Starting from turn {1+int(dbOutput[0][2])}'
+        case 64: return 'x Dragon Balls obtained'
+        case 65: return 'After Giant/Rage transformation ends'
+        case 66: return f'Before Active Skill is activated {dbOutput[0][2]} times'
     
 # Read through kit, sepearate lines based on activiation condition (SoT vs. 'on attack')
 # Then, calculate SoT defense and conditional SoT defense  
@@ -1048,6 +991,16 @@ def getKit(characterID, dbCursor, EZA):
         if dbOutput:
             characterKit.dokkan_fields = dbOutput[0][1]
     
+    dbCursor.execute(f'''SELECT * FROM card_standby_skill_set_relations where card_id = {characterID}''')
+    dbOutput = dbCursor.fetchall()
+    if dbOutput:
+        characterKit.standby_skills = dbOutput[0][2]
+        
+    dbCursor.execute(f'''SELECT * FROM card_finish_skill_set_relations where card_id = {characterID}''')
+    dbOutput = dbCursor.fetchall()
+    for finish_skill in dbOutput:
+        characterKit.finish_skills.append(finish_skill[2])
+    
     dbCursor.execute(f'''SELECT * FROM cards where id = {characterID}''')
     potentialOutput = dbCursor.fetchall()[0][52] # HiPo
     # Optional selection for GBL/JP kits
@@ -1388,6 +1341,9 @@ def calculateMain(characterKit, dbCursor):
     ATKDEFFrame2.winfo_toplevel().wm_geometry("")
     ATKFrame2.winfo_toplevel().wm_geometry("")
     DEFFrame2.winfo_toplevel().wm_geometry("")
+    
+    for widget in ATKDEFFrame.winfo_children():
+        widget.destroy()
     ATKDEFFrame.pack_forget()
     for widget in ATKFrame.winfo_children():
         widget.destroy()
@@ -1424,7 +1380,9 @@ def calculateMain(characterKit, dbCursor):
             dbOutput[0][3] == 51 or dbOutput[0][3] == 67 or
             dbOutput[0][3] == 78 or dbOutput[0][3] == 83 or
             dbOutput[0][3] == 91 or dbOutput[0][3] == 92 or
-            dbOutput[0][3] == 110 or dbOutput[0][3] == 119):
+            dbOutput[0][3] == 96 or dbOutput[0][3] == 109 or
+            dbOutput[0][3] == 110 or dbOutput[0][3] == 115 or
+            dbOutput[0][3] == 117 or dbOutput[0][3] == 119):
                 passive_skill_set_id += 1000000
                 continue
             # Domain Skill via passive (LR Future Gohan, STR Slug, STR Cell)
@@ -1545,7 +1503,7 @@ def calculateMain(characterKit, dbCursor):
                 else:
                     cond2 += ', when attacking'
                     
-            if dbOutput[0][3] == 61:
+            if dbOutput[0][3] == 59 or dbOutput[0][3] == 60 or dbOutput[0][3] == 61:
                 if not cond2:
                     cond2 = '# Ki Spheres obtained'
                 else:
@@ -1860,19 +1818,25 @@ def main():
     if mainUnit.costumes:
         print(f'\nCostume: {mainUnit.costumes}')
     
-    #if mainUnit.dokkan_fields:
-    #    print(f'\nDomain Skill: {mainUnit.dokkan_fields[0]}\n- {mainUnit.dokkan_fields[1]}')
-    
     if mainUnit.active_skill_set_id:
         dbCursor.execute(f'''SELECT * FROM active_skill_sets where id = {mainUnit.active_skill_set_id}''')
         dbOutput = dbCursor.fetchall()[0]
         print(f'\nActive Skill: {dbOutput[1]}\n- Effect: {dbOutput[2]}\n- Condition: {dbOutput[3]}')
         
+    if mainUnit.dokkan_fields:
+        dbCursor.execute(f'''SELECT * FROM dokkan_fields where dokkan_field_efficacy_set_id = {mainUnit.dokkan_fields}''')
+        domainOutput = dbCursor.fetchall()[0]
+        print(f'\nDomain Skill: {domainOutput[2]}\n- {domainOutput[3]}')
+    
     if mainUnit.standby_skills:
-        print(f'\nStandby Skill: {mainUnit.standby_skills[0]}\n- Effect: {mainUnit.standby_skills[1]}\n- Condition: {mainUnit.standby_skills[2]}')
+        dbCursor.execute(f'''SELECT * FROM standby_skill_sets where id = {mainUnit.standby_skills}''')
+        dbOutput = dbCursor.fetchall()
+        print(f'\nStandby Skill: {dbOutput[0][1]}\n- Effect: {dbOutput[0][3]}\n- Condition: {dbOutput[0][4]}')
         
     for finish_skill in mainUnit.finish_skills:
-        print(f'\nFinish Skill: {finish_skill[0]}\n- Effect: {finish_skill[1]}\n- Condition: {finish_skill[2]}')
+        dbCursor.execute(f'''SELECT * FROM finish_skill_sets where id = {finish_skill}''')
+        dbOutput = dbCursor.fetchall()
+        print(f'\nFinish Skill: {dbOutput[0][1]}\n- Effect: {dbOutput[0][2]}\n- Condition: {dbOutput[0][3]}')
     
     print('\nLink Skills:')
     for card_link in mainUnit.card_links:
@@ -1881,7 +1845,6 @@ def main():
         dbCursor.execute(f'''SELECT * FROM link_skills WHERE id = {card_link}''')
         dbOutput = dbCursor.fetchall()[0]
         print(f'- {dbOutput[1]}')
-        #linkLabel.insert(END, dbOutput[1] + '\n')
     
     print(f'\nCategories:')
     dbCursor.execute(f'''SELECT * FROM card_card_categories where card_id = {characterID}''')
